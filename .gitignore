@@ -194,3 +194,8 @@ anysplat_ckpt*
 input_images_*
 tmp_scripts/
 *v2*
+
+
+# Dataset directories
+AnySplat/datasets/
+AnySplat/datasets-raw/
