@@ -1,10 +1,15 @@
 # @package _global_
 
+# defaults:
+#   - /dataset@_group_.co3d: co3d
+#   - override /model/encoder: anysplat
+#   - override /model/encoder/backbone: croco
+#   - override /loss: [mse, lpips, depth_consis] # ablate: opacity loss
 defaults:
   - /dataset@_group_.co3d: co3d
-  - override /model/encoder: anysplat
-  - override /model/encoder/backbone: croco
-  - override /loss: [mse, lpips, depth_consis] # ablate: opacity loss
+  # - /model/encoder: anysplat
+  - /loss: [mse, lpips, depth_consis]
+mode: train
 
 wandb:
   name: co3d
@@ -80,11 +85,20 @@ hydra:
 
 loss:
   mse:
+    weight: 0.05
     conf: false
   lpips:
     conf: false
+  # 论文的 λ 对应: λ1 -> mse, λ2 -> depth_consis, λ3 -> chamfer_distance, λ4 -> opacity
   depth_consis:
     weight: 0.1
     loss_type: MSE
+  chamfer_distance:
+    # 对应论文 λ3
+    weight: 10.0
+    down_sample_ratio: 0.1
+  opacity:
+    # 对应论文 λ4
+    weight: 1.0
 
 

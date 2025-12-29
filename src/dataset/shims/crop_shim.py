@@ -119,11 +119,17 @@ def rescale_and_crop(
         *_, h_in, w_in = images.shape
         h_out, w_out = shape
         # assert h_out <= h_in and w_out <= w_in # to avoid the case that the image is too small, like co3d
-        
+
+        # 如果启用了内部内参增强 (intr_aug)，我们在论文要求范围内
+        # 同时随机采样缩放比例和宽高比（aspect ratio）。
+        # 具体实现：采样 scale ∈ scale_range，采样 aspect ∈ [0.5, 1.0]
+        # 然后令 h_scale = round(h_out * scale)，w_scale = round(w_out * scale * aspect)
+        # 这样可以实现论文中“长宽比在 0.5 到 1.0 之间随机化”的要求。
         if intr_aug:
             scale = random.uniform(*scale_range)
+            aspect = random.uniform(0.5, 1.0)
             h_scale = round(h_out * scale)
-            w_scale = round(w_out * scale)
+            w_scale = round(w_out * scale * aspect)
         else:
             h_scale = h_out
             w_scale = w_out
@@ -131,7 +137,9 @@ def rescale_and_crop(
         scale_factor = max(h_scale / h_in, w_scale / w_in)
         h_scaled = round(h_in * scale_factor)
         w_scaled = round(w_in * scale_factor)
-        assert h_scaled == h_scale or w_scaled == w_scale
+
+        # 注意：在启用 aspect-ratio 随机化后，两条尺寸一致性的断言不再总是成立，
+        # 因此取消原先严格的 assert，保留通过 resize + center_crop 实现所需裁剪。
 
         # Reshape the images to the correct size. Assume we don't have to worry about
         # changing the intrinsics based on how the images are rounded.

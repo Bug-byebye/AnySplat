@@ -26,19 +26,20 @@ from ..misc.cam_utils import camera_normalization
 
 from .shims.geometry_shim import depthmap_to_absolute_camera_coordinates
 
-CATEGORY = {'train': 
-    ["backpack", "ball", "banana", "baseballbat", "baseballglove",
-    "bench", "bicycle", "book", "bottle", "bowl", "broccoli", "cake", "car", "carrot",
-    "cellphone", "chair", "couch", "cup", "donut", "frisbee", "hairdryer", "handbag",
-    "hotdog", "hydrant", "keyboard", "kite", "laptop", "microwave",
-    "motorcycle",
-    "mouse", "orange", "parkingmeter", "pizza", "plant", "remote", "sandwich",
-    "skateboard", "stopsign",
-    "suitcase", "teddybear", "toaster", "toilet", "toybus",
-    "toyplane", "toytrain", "toytruck", "tv",
-    "umbrella", "vase", "wineglass",], 
+# CATEGORY = {'train': 
+#     ["backpack", "ball", "banana", "baseballbat", "baseballglove",
+#     "bench", "bicycle", "book", "bottle", "bowl", "broccoli", "cake", "car", "carrot",
+#     "cellphone", "chair", "couch", "cup", "donut", "frisbee", "hairdryer", "handbag",
+#     "hotdog", "hydrant", "keyboard", "kite", "laptop", "microwave",
+#     "motorcycle",
+#     "mouse", "orange", "parkingmeter", "pizza", "plant", "remote", "sandwich",
+#     "skateboard", "stopsign",
+#     "suitcase", "teddybear", "toaster", "toilet", "toybus",
+#     "toyplane", "toytrain", "toytruck", "tv",
+#     "umbrella", "vase", "wineglass",], 
+#     'test': ['teddybear']}
+CATEGORY = {'train': ["car",], 
     'test': ['teddybear']}
-
 @dataclass
 class DatasetCo3dCfg(DatasetCfgCommon):
     name: str

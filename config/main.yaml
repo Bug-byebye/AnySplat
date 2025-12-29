@@ -2,6 +2,7 @@ defaults:
   - model/encoder: anysplat
   - model/decoder: splatting_cuda
   - loss: [mse]
+  - experiment: co3d
   
 wandb:
   project: anysplat

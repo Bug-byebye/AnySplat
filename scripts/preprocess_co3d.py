@@ -224,7 +224,14 @@ def get_parser():
     parser.add_argument(
         "--img_size",
         type=int,
-        default=512,
+        default=448,
+    )
+    parser.add_argument(
+        "--split",
+        type=str,
+        choices=["train", "test", "both"],
+        default="train",
+        help="Which split to process: train, test, or both (default=train)",
     )
     return parser
 
@@ -455,7 +462,12 @@ def main():
 
     valid_sequences = {cat: {} for cat in categories}
 
-    for split in ["train", "test"]:
+    if args.split == "both":
+        splits = ["train", "test"]
+    else:
+        splits = [args.split]
+
+    for split in splits:
         selected_sequences_path = os.path.join(
             args.output_dir, f"selected_seqs_{split}.json"
         )
