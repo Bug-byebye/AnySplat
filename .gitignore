@@ -177,7 +177,7 @@ table.tex
 /test/*
 
 wandb/
-output*
+# output*
 results*
 
 *.ply
