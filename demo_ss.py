@@ -17,45 +17,101 @@ from PIL import Image
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.misc.image_io import save_interpolated_video
+from src.misc.image_io import save_rendered_video_no_interpolation, save_interpolated_video
 from src.model.model.anysplat import AnySplat
 from src.model.ply_export import export_ply
 from src.utils.image import process_image
+from self_supervise import (
+    load_config as ss_load_config,
+    load_images as ss_load_images,
+    pose_interpolation,
+    render_images,
+)
 
 
-# 1) Core model inference
+# 1) Core model inference using self_supervise-style reconstruction
 def get_reconstructed_scene(outdir, model, device):
-    # Load Images
-    image_files = sorted(
-        [
-            os.path.join(outdir, "images", f)
-            for f in os.listdir(os.path.join(outdir, "images"))
-        ]
-    )
-    images = [process_image(img_path) for img_path in image_files]
-    images = torch.stack(images, dim=0).unsqueeze(0).to(device)  # [1, K, 3, 448, 448]
-    b, v, c, h, w = images.shape
+    """
+    使用 self_supervise.py 中的自监督重建逻辑，从 outdir/images 重建场景。
+    保持输入输出接口不变：返回 (plyfile, rgb_video, depth_video)。
+    """
+    # 加载 self_supervise 的配置
+    cfg = ss_load_config("config/self_supervise.yaml")
 
-    assert c == 3, "Images must have 3 channels"
+    # 使用 Gradio 预处理后的图像目录作为输入
+    input_folder = os.path.join(outdir, "images")
+    if not os.path.isdir(input_folder):
+        raise FileNotFoundError(f"图像文件夹不存在: {input_folder}")
 
-    # Run Inference
+    print(f"[demo_ss] 从文件夹加载图像: {input_folder}")
+    raw_images = ss_load_images(input_folder)
+    images = torch.stack(raw_images, dim=0).unsqueeze(0).to(device)  # [1, K, 3, 448, 448]
+    b, v, _, h, w = images.shape
+    print(f"[demo_ss] 图像形状: {images.shape}")
+
+    # 第一次推理，获得初始高斯和位姿
+    print("[demo_ss] 运行初始推理...")
     gaussians, pred_context_pose = model.inference((images + 1) * 0.5)
 
-    # Save the results
-    pred_all_extrinsic = pred_context_pose["extrinsic"]
-    pred_all_intrinsic = pred_context_pose["intrinsic"]
-    video, depth_colored = save_interpolated_video(
-        pred_all_extrinsic,
-        pred_all_intrinsic,
-        b,
-        h,
-        w,
-        gaussians,
-        outdir,
-        model.decoder,
+    # 设置输出文件夹（基于 outdir，而不是 config 里的路径）
+    output_folder = cfg.images.get("output_folder", None)
+    if not output_folder:
+        output_folder = os.path.join(outdir, "output")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_folder = f"{output_folder}_{timestamp}"
+    os.makedirs(output_folder, exist_ok=True)
+
+    # 读取 self_supervise 中的超参数
+    num_interp_frames = cfg.images.get("interp_frames", 5)
+    iter_num = cfg.inference.get("iter_num", 5)
+    image_sorted = cfg.images.get("image_sorted", True)
+
+    combined_images = raw_images
+    print(
+        f"[demo_ss] 开始自监督重建，迭代次数: {iter_num}, "
+        f"每次随机插值帧数: {num_interp_frames}"
     )
 
-    plyfile = os.path.join(outdir, "gaussians.ply")
+    for i in range(iter_num):
+        print(f"[demo_ss] 迭代 {i + 1}/{iter_num}")
+        # 使用 self_supervise 的随机插值逻辑
+        interpolated_pose = pose_interpolation(
+            pred_context_pose,
+            num_interp_frames=num_interp_frames,
+            image_sorted=image_sorted,
+        )
+        selected_images = render_images(model.decoder, interpolated_pose, gaussians)
+
+        # 将当前迭代生成的插值图像保存到输出目录（便于调试和可视化）
+        selected_folder = cfg.images.get("selected_folder", None)
+        if not selected_folder:
+            selected_folder = os.path.join(output_folder, f"selected_images_{i:04d}")
+        else:
+            selected_folder = os.path.join(
+                output_folder, selected_folder, f"iter_{i:04d}"
+            )
+
+        os.makedirs(selected_folder, exist_ok=True)
+        # 复用 self_supervise 中的保存逻辑：这里简单保存为 PNG 序列
+        from self_supervise import save_images as ss_save_images
+
+        ss_save_images(selected_images, Path(selected_folder))
+        print(
+            f"[demo_ss] 插值图像已保存到: {selected_folder}，数量: {selected_images.shape[0]}"
+        )
+
+        # 将新生成的图像加入到训练集中，重新推理（与 self_supervise 一致）
+        selected_images_list = ss_load_images(selected_folder)
+        combined_images = combined_images + selected_images_list
+        images = torch.stack(combined_images, dim=0).unsqueeze(0).to(device)
+
+        print(
+            f"[demo_ss] 使用合并后的图像重新推理，当前图像数量: {images.shape[1]}"
+        )
+        gaussians, pred_context_pose = model.inference((images + 1) * 0.5)
+
+    # 导出最终高斯点云
+    plyfile = os.path.join(output_folder, "gaussians.ply")
     export_ply(
         gaussians.means[0],
         gaussians.scales[0],
@@ -65,10 +121,28 @@ def get_reconstructed_scene(outdir, model, device):
         Path(plyfile),
         save_sh_dc_only=True,
     )
+    print(f"[demo_ss] 高斯点云已导出到: {plyfile}")
+
+    # 使用最终一次迭代的位姿保存插值视频
+    pred_all_extrinsic = pred_context_pose["extrinsic"]
+    pred_all_intrinsic = pred_context_pose["intrinsic"]
+    current_batch_size = pred_all_extrinsic.shape[0]
+    # rgb_video, depth_video = save_rendered_video_no_interpolation(
+    rgb_video, depth_video = save_interpolated_video(
+        pred_all_extrinsic,
+        pred_all_intrinsic,
+        current_batch_size,
+        h,
+        w,
+        gaussians,
+        output_folder,
+        model.decoder,
+    )
+    print(f"[demo_ss] 插值视频已保存到: {rgb_video}, {depth_video}")
 
     # Clean up
     torch.cuda.empty_cache()
-    return plyfile, video, depth_colored
+    return plyfile, rgb_video, depth_video
 
 
 # 2) Handle uploaded video/images --> produce target_dir + images
@@ -83,11 +157,11 @@ def handle_uploads(input_video, input_images):
 
     # Create a unique folder name
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-    base_dir = "gradio_inputs"
+    base_dir = "ss_inputs"
     os.makedirs(base_dir, exist_ok=True)
     target_dir = os.path.join(base_dir, f"input_images_{timestamp}")
     target_dir_images = os.path.join(target_dir, "images")
-
+    
     # Clean up if somehow that folder already exists
     if os.path.exists(target_dir):
         shutil.rmtree(target_dir)
@@ -256,30 +330,30 @@ if __name__ == "__main__":
             box-sizing: border-box;
         }
         """
-    with gr.Blocks(css=css, title="AnySplat Demo", theme=theme) as demo:
+    with gr.Blocks(css=css, title="AnySplat-ss Demo", theme=theme) as demo:
         gr.Markdown(
             """
             <h1 style='text-align: center;'>AnySplat: Feed-forward 3D Gaussian Splatting from Unconstrained Views</h1>
             """
         )
 
-        with gr.Row():
-            gr.Markdown(
-                """
-                        <p align="center">
-                        <a title="Website" href="https://city-super.github.io/anysplat/" target="_blank" rel="noopener noreferrer" style="display: inline-block;">
-                            <img src="https://www.obukhov.ai/img/badges/badge-website.svg">
-                        </a>
-                        <a title="arXiv" href="https://arxiv.org/pdf/2505.23716" target="_blank" rel="noopener noreferrer" style="display: inline-block;">
-                            <img src="https://www.obukhov.ai/img/badges/badge-pdf.svg">
-                        </a>
-                        <a title="Github" href="https://github.com/OpenRobotLab/AnySplat" target="_blank" rel="noopener noreferrer" style="display: inline-block;">
-                            <img src="https://img.shields.io/badge/Github-Page-black" alt="badge-github-stars">
-                        </a>
+        # with gr.Row():
+        #     gr.Markdown(
+        #         """
+        #                 <p align="center">
+        #                 <a title="Website" href="https://city-super.github.io/anysplat/" target="_blank" rel="noopener noreferrer" style="display: inline-block;">
+        #                     <img src="https://www.obukhov.ai/img/badges/badge-website.svg">
+        #                 </a>
+        #                 <a title="arXiv" href="https://arxiv.org/pdf/2505.23716" target="_blank" rel="noopener noreferrer" style="display: inline-block;">
+        #                     <img src="https://www.obukhov.ai/img/badges/badge-pdf.svg">
+        #                 </a>
+        #                 <a title="Github" href="https://github.com/OpenRobotLab/AnySplat" target="_blank" rel="noopener noreferrer" style="display: inline-block;">
+        #                     <img src="https://img.shields.io/badge/Github-Page-black" alt="badge-github-stars">
+        #                 </a>
                 
-                        </p>
-                        """
-            )
+        #                 </p>
+        #                 """
+        #     )
         with gr.Row():
             gr.Markdown(
                 """

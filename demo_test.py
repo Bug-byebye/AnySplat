@@ -37,7 +37,7 @@ def _load_config_from_run_dir(run_dir: Path):
     return cfg_dict
 
 
-def _build_model_from_checkpoint(checkpoint_path: str, device: torch.device):
+def build_model_from_checkpoint(checkpoint_path: str, device: torch.device):
     checkpoint_path = os.path.abspath(checkpoint_path)
     if not os.path.isfile(checkpoint_path):
         raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
@@ -73,7 +73,7 @@ def get_model_cached(checkpoint_path: str, device: torch.device):
     key = f"{checkpoint_path}|{device}"
     if key in _MODEL_CACHE:
         return _MODEL_CACHE[key]
-    model = _build_model_from_checkpoint(checkpoint_path, device)
+    model = build_model_from_checkpoint(checkpoint_path, device)
     _MODEL_CACHE[key] = model
     return model
 

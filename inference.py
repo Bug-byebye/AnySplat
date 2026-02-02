@@ -21,6 +21,7 @@ def main():
     
     # Load Images
     image_folder = "examples/vrnerf/riverview"
+    # image_folder = "examples/vrnerf/riverview-test"
     images = sorted([os.path.join(image_folder, f) for f in os.listdir(image_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg'))])
     images = [process_image(img_path) for img_path in images]
     images = torch.stack(images, dim=0).unsqueeze(0).to(device) # [1, K, 3, 448, 448]
