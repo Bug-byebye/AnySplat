@@ -10,6 +10,13 @@ from src.model.ply_export import export_ply
 from src.model.model.anysplat import AnySplat
 from src.utils.image import process_image
 
+
+
+def feed_forward(model, images):
+    gaussians, pred_context_pose = model.inference((images+1)*0.5)
+    return gaussians, pred_context_pose
+
+
 def main():
     # Load the model from Hugging Face
     model = AnySplat.from_pretrained("lhjiang/anysplat")

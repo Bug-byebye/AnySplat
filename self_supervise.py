@@ -241,6 +241,40 @@ def save_images(images, save_path):
         image = image.astype(np.uint8)
         imageio.imwrite(save_path / f"{i:04d}.png", image)
 
+def self_supervise(model, images, output_folder, cfg):
+
+    gaussians, pred_context_pose = model.inference((images+1)*0.5)
+    num_interp_frames = cfg.images.get("interp_frames", 5)
+    iter_num = cfg.inference.get("iter_num", 5)
+    image_sorted = cfg.images.get("image_sorted", True)
+    combined_images = images
+    selected_folder = cfg.images.get("selected_folder", None)
+
+    for i in range(iter_num):
+        print(f"[ss-info] 迭代 {i+1}/{iter_num}")
+        interpolated_pose = pose_interpolation(
+            pred_context_pose, 
+            num_interp_frames=num_interp_frames,
+            image_sorted=image_sorted
+        )
+        selected_images = render_images(model.decoder, interpolated_pose, gaussians)
+        
+        if not selected_folder:
+            selected_folder = os.path.join(output_folder, f"selected_images_{i:04d}")
+        else:
+            selected_folder = os.path.join(output_folder, selected_folder, f"iter_{i:04d}")
+        
+        os.makedirs(selected_folder, exist_ok=True)
+        save_images(selected_images, Path(selected_folder))
+        print(f"[ss-info] 图像已保存到: {selected_folder}，数量: {selected_images.shape[0]}")
+        
+        selected_images = load_images(selected_folder)
+        combined_images = combined_images + selected_images
+        images = torch.stack(combined_images, dim=0).unsqueeze(0).to(device)  # [1, K+N, 3, 448, 448]
+        
+        print(f"[ss-info] 使用合并后的图像重新推理，图像数量: {images.shape[1]}")
+        gaussians, pred_context_pose = model.inference((images+1)*0.5)
+
 def main():
     cfg = load_config("config/self_supervise.yaml")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

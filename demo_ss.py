@@ -26,6 +26,7 @@ from self_supervise import (
     load_images as ss_load_images,
     pose_interpolation,
     render_images,
+    sort_cameras_by_trajectory,
 )
 
 
@@ -122,10 +123,11 @@ def get_reconstructed_scene(outdir, model, device):
         save_sh_dc_only=True,
     )
     print(f"[demo_ss] 高斯点云已导出到: {plyfile}")
+    sorted_indices = sort_cameras_by_trajectory(pred_context_pose['extrinsic'])
 
-    # 使用最终一次迭代的位姿保存插值视频
-    pred_all_extrinsic = pred_context_pose["extrinsic"]
-    pred_all_intrinsic = pred_context_pose["intrinsic"]
+    # 使用最终一次迭代的位姿保存插值视频，按轨迹排序后的外参和内参
+    pred_all_extrinsic = pred_context_pose['extrinsic'][:, sorted_indices]
+    pred_all_intrinsic = pred_context_pose['intrinsic'][:, sorted_indices]
     current_batch_size = pred_all_extrinsic.shape[0]
     # rgb_video, depth_video = save_rendered_video_no_interpolation(
     rgb_video, depth_video = save_interpolated_video(

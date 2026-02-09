@@ -209,3 +209,70 @@ def save_interpolated_video(
     save_video(video, os.path.join(save_path, f"rgb.mp4"))
 
     return os.path.join(save_path, f"rgb.mp4"), os.path.join(save_path, f"depth.mp4")
+
+def save_rendered_video_no_interpolation(
+    pred_extrinsics,
+    pred_intrinsics,
+    b,
+    h,
+    w,
+    gaussians,
+    save_path,
+    decoder_func,
+):
+    """
+    Render video directly from provided camera poses (no interpolation).
+
+    Args:
+        pred_extrinsics: (B, V, 4, 4)
+        pred_intrinsics: (B, V, 3, 3)
+        b: batch size
+        h, w: image height / width
+        gaussians: reconstructed Gaussian scene
+        save_path: directory to save videos
+        decoder_func: Gaussian renderer
+    """
+
+    # Number of views
+    num_frames = pred_extrinsics.shape[1]
+
+    # Render all provided views directly
+    with torch.no_grad():
+        rendered_output = decoder_func.forward(
+            gaussians,
+            pred_extrinsics,
+            pred_intrinsics.float(),
+            torch.ones(1, num_frames, device=pred_extrinsics.device) * 0.1,
+            torch.ones(1, num_frames, device=pred_extrinsics.device) * 100.0,
+            (h, w),
+        )
+
+    # RGB video (V, H, W, 3) -> (V, 3, H, W)
+    video = rendered_output.color[0].clamp(0, 1)
+
+    # Depth video
+    depth = rendered_output.depth[0]
+
+    # Normalize depth for visualization (robust quantile-based normalization)
+    depth_min = depth.quantile(0.01)
+    depth_max = depth.quantile(0.99)
+    depth_norm = (depth - depth_min) / (depth_max - depth_min + 1e-6)
+    depth_norm = depth_norm.clamp(0, 1)
+
+    # Apply colormap
+    depth_colored = plt.cm.turbo(depth_norm.cpu().numpy())
+    depth_colored = (
+        torch.from_numpy(depth_colored[..., :3])
+        .permute(0, 3, 1, 2)
+        .to(depth.device)
+        .clamp(0, 1)
+    )
+
+    # Save videos
+    rgb_path = os.path.join(save_path, "rgb.mp4")
+    depth_path = os.path.join(save_path, "depth.mp4")
+
+    save_video(video, rgb_path)
+    save_video(depth_colored, depth_path)
+
+    return rgb_path, depth_path

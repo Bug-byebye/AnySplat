@@ -1,0 +1,35 @@
+dataset_root: datasets-raw/vrnerf
+scenes: datasets-raw/vrnerf/scenes_used.json
+
+# If null, write outputs into each scene directory under dataset_root
+out_dir: null
+
+# Generate splits_fewshot_{K}v.json for each K
+num_context: [2, 5, 20]
+
+# Number of test/target views per scene
+num_test: 50
+
+# Candidate pool source from splits.json
+pool_from: train   # train | all
+
+# Optional prefix filter for frame ids, e.g. "10/".
+# Applied only if enough frames remain to satisfy num_context + num_test
+block_prefix: "10/"
+
+# How to select test views from remaining frames
+test_strategy: farthest  # farthest | uniform
+
+# Random seed (affects tie-breaks / optional random start)
+seed: 0
+
+# -----------------------------------------------------------------------------
+# Dense-view / Sparse-view evaluation (camera-block based)
+# Used by get_dense_sparse_splits() / get_dense_sparse_splits_with_paths()
+# -----------------------------------------------------------------------------
+dense_sparse:
+  pool_size: 72
+  pool_stride: 2        # Every other image: 1st, 3rd, 5th...
+  seed: 0               # For reproducible 48/32-view sampling
+  images_subdir: images-jpeg-1k
+

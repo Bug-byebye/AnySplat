@@ -575,7 +575,11 @@ class EncoderAnySplat(Encoder[EncoderAnySplatCfg]):
                 extrinsic=torch.cat([extrinsic, extrinsic_padding], dim=2).inverse(),
                 intrinsic=intrinsic,
             ),
-            depth_dict=dict(depth=depth_map, conf_valid_mask=conf_valid_mask),
+            depth_dict=dict(
+                depth=depth_map, 
+                conf_valid_mask=conf_valid_mask,
+                depth_conf=depth_conf,
+                ),
             infos=infos,
             distill_infos=distill_infos,
         )

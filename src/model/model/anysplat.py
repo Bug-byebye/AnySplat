@@ -96,10 +96,14 @@ class AnySplat(nn.Module, huggingface_hub.PyTorchModelHubMixin):
     @torch.no_grad()
     def inference(self,
         context_image: torch.Tensor,
+        return_depth_conf: bool = False,
     ):
         self.encoder.distill = False
         encoder_output = self.encoder(context_image, global_step=0, visualization_dump=None)
         gaussians, pred_context_pose = encoder_output.gaussians, encoder_output.pred_context_pose
+        if return_depth_conf:
+            depth_conf = encoder_output.depth_dict.get("depth_conf", None)
+            return gaussians, pred_context_pose, depth_conf
         return gaussians, pred_context_pose
     
     def forward(self, 
