@@ -1,0 +1,29 @@
+pretrained_model_path: "pretrained_model"
+
+input_folder: "exp-results/ss-exp/vrnerf_20260205_062447/kitchen/input_images"
+output_folder: "exp-results/ttt-exp"
+
+iters: 5
+# interp_frames: 5
+image_sorted: true
+group_size: 8
+seed: 123
+
+train_components:
+  - "encoder.gaussian_adapter"
+  - "encoder.gaussian_param_head"
+  # - "encoder.camera_head"
+
+# "auto" | "cuda" | "cpu"
+device: "cuda"
+
+export_ply: true
+lr: 0.0002
+# "l1_mse" | "lpips" | "l1_mse_lpips"
+loss_type: "l1_mse_lpips"
+
+l1_weight: 1.0
+mse_weight: 1.0
+lpips_weight: 0.05
+
+context_loss_weight: 1.0

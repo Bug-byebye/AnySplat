@@ -314,8 +314,8 @@ def get_dense_sparse_splits_with_paths(
 
 def load_scenes_used(
     *,
-    dataset_root: Path | str = "datasets-raw/vrnerf",
-    scenes_used_path: Path | str = "datasets-raw/vrnerf/scenes_used.json",
+    dataset_root: Path,
+    scenes_used_path: Path
 ) -> list[dict]:
     """
     Read `scenes_used.json` and return a structured list for downstream scripts.
@@ -323,6 +323,7 @@ def load_scenes_used(
     Returns a list of dicts:
       [{"scene": <scene_name>, "scene_dir": <Path to scene directory>}, ...]
     """
+    
     dataset_root = Path(dataset_root)
     scenes_used_path = Path(scenes_used_path)
     scenes = _load_scene_list(scenes_used_path)

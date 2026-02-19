@@ -199,3 +199,5 @@ tmp_scripts/
 # experiment outputs
 exp-results/
 examples/vrnerf/
+
+pretrained_model/

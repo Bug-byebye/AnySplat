@@ -1,20 +1,14 @@
 experiment:
-  # 视角采样策略：dense（稠密输入 + 少量 test）| sparse（稀疏输入 + 较多 test）
-  strategy: sparse  # dense | sparse
-  # 使用多少张输入视角（仅 dense 时生效；typical 为 64 / 48 / 32）
-  num_context: 32
-  # 使用的 VR-NeRF camera block id（例如 kitchen 中的 20）
-  camera_id: "20"
-  # 指标结果输出的根目录（内部会自动加时间戳子目录）
-  metrics_dir: "exp-results/nvs_compare"
-  # 图像保存的根目录（内部会自动加 vrnerf_<时间戳>/ 子目录）
-  image_root_dir: "exp-results"
+  pretrained_model_path: "pretrained_model"
+  num_context: 64
+  camera_id: "20"  # used for vr-nerf
 
+  metrics_dir: "exp-results/ttt-exp/nvs_compare"
+  image_root_dir: "exp-results/ttt-exp"
 
-# 覆盖 dense/sparse 采样相关参数（若不写则回退到 vrnerf_sampler.yaml）
+# cover vrnerf_sampler.yaml
 dense_sparse:
-  pool_size: 72       # 候选池大小
-  pool_stride: 2      # 构建候选池时的步长（2=第1,3,5...张）
-  seed: 123             # 采样 seed（影响 48/32-view 子集可复现性）
+  pool_size: 72
+  pool_stride: 3
+  seed: 123
   images_subdir: "images-jpeg-1k"
-
