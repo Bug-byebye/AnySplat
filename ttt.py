@@ -39,6 +39,8 @@ class TTTConfig:
     lpips_weight: float = 0.1
     context_loss_weight: float = 1.0
     group_size: int = 8
+    group_mode: str = "sequential"
+    group_stride: Optional[int] = None
     seed: int = 0
     pretrained_model_path: Optional[str] = None
 
@@ -82,13 +84,58 @@ def get_ttt_parameters(model: AnySplat, train_components: Optional[List[str]] = 
     if not train_components:
         train_components = ["encoder.gaussian_adapter", "encoder.gaussian_param_head"]
 
+    # 打印所有模型参数名，帮助调试
+    print(f"\n[DEBUG] TTT 寻找参数: train_components={train_components}")
+    print(f"[DEBUG] 模型中所有参数（包括冻结的）:")
+    all_param_names = []
+    trainable_param_names = []
+    for name, p in model.named_parameters():
+        all_param_names.append((name, p.requires_grad))
+        if p.requires_grad:
+            trainable_param_names.append(name)
+    
+    if all_param_names:
+        print(f"  总数: {len(all_param_names)}")
+        print(f"  可训练的参数: {len(trainable_param_names)}")
+        print(f"\n  参数列表 (前 30 个):")
+        for name, requires_grad in all_param_names[:30]:
+            status = "✓" if requires_grad else "✗"
+            print(f"    [{status}] {name}")
+        if len(all_param_names) > 30:
+            print(f"    ... 还有 {len(all_param_names) - 30} 个参数")
+    else:
+        print("  (模型中没有任何参数！)")
+
     for name, p in model.named_parameters():
         if any(component in name for component in train_components):
             params.append(p)
 
     if not params:
+        print(f"\n[ERROR] 未找到匹配的参数！")
+        print(f"[ERROR] train_components={train_components}")
+        print(f"[ERROR] 请检查:")
+        print(f"  1. train_components 中的字符串是否与模型参数名称匹配")
+        print(f"  2. 模型是否正确加载")
+        print(f"  3. 当前模型中包含的参数模块名称（供参考）:")
+        
+        # 列出所有可能的组件名称
+        matching_modules = set()
+        for name, p in model.named_parameters():
+            parts = name.split(".")
+            if len(parts) >= 2:
+                # 提取不同长度的前缀
+                matching_modules.add(parts[0])
+                matching_modules.add(".".join(parts[:2]))
+                if len(parts) >= 3:
+                    matching_modules.add(".".join(parts[:3]))
+        
+        if matching_modules:
+            for module in sorted(matching_modules)[:20]:  # 最多显示20个
+                print(f"     - \"{module}\"")
+        
         raise RuntimeError("未找到可用于 TTT 的参数，请检查模型结构或筛选逻辑。")
 
+    print(f"[DEBUG] 找到 {len(params)} 个参数用于 TTT 训练\n")
     return params
 
 
@@ -119,21 +166,44 @@ def load_image_tensors(image_paths: List[Path]) -> List[torch.Tensor]:
     return images
 
 
-def group_images_sequentially(images: List[torch.Tensor], group_size: int) -> List[List[torch.Tensor]]:
+def group_images(
+    images: List[torch.Tensor],
+    group_size: int,
+    mode: str = "sequential",
+    stride: Optional[int] = None,
+) -> List[List[torch.Tensor]]:
     if group_size < 2:
         raise ValueError("group_size 必须 >= 2")
 
-    groups = [images[i : i + group_size] for i in range(0, len(images), group_size)]
-    if not groups:
+    if not images:
         raise ValueError("输入图像为空，无法构建分组。")
 
-    if len(groups[-1]) < 2:
-        if len(groups) == 1:
-            raise ValueError("至少需要 2 张图像才能进行 TTT 训练。")
-        groups[-2].extend(groups[-1])
-        groups.pop()
+    mode = str(mode or "sequential").strip().lower()
 
-    return groups
+    if mode == "sequential":
+        groups = [images[i : i + group_size] for i in range(0, len(images), group_size)]
+        if len(groups[-1]) < 2:
+            if len(groups) == 1:
+                raise ValueError("至少需要 2 张图像才能进行 TTT 训练。")
+            groups[-2].extend(groups[-1])
+            groups.pop()
+        return groups
+
+    if mode in {"sliding", "slide", "overlap"}:
+        if len(images) < group_size:
+            raise ValueError("图像数量不足，无法构建滑动窗口分组。")
+        step = int(stride) if stride not in (None, 0) else max(1, group_size // 2)
+        if step < 1:
+            raise ValueError("group_stride 必须 >= 1")
+        groups = [
+            images[i : i + group_size]
+            for i in range(0, len(images) - group_size + 1, step)
+        ]
+        if not groups:
+            raise ValueError("未生成任何滑动窗口分组，请检查 group_size/group_stride。")
+        return groups
+
+    raise ValueError("group_mode 必须为 'sequential' 或 'sliding'")
 
 
 def render_views(
@@ -259,8 +329,19 @@ def run_ttt(model: AnySplat, cfg: TTTConfig) -> None:
         f"集合一: {len(set1_images)} | 集合二: {len(set2_images)}"
     )
 
-    groups = group_images_sequentially(set1_images, cfg.group_size)
-    print(f"[ttt] 集合一按 {cfg.group_size} 张分组，共 {len(groups)} 组")
+    groups = group_images(
+        set1_images,
+        group_size=cfg.group_size,
+        mode=cfg.group_mode,
+        stride=cfg.group_stride,
+    )
+    if cfg.group_mode in {"sliding", "slide", "overlap"}:
+        stride_info = cfg.group_stride if cfg.group_stride not in (None, 0) else max(1, cfg.group_size // 2)
+        print(
+            f"[ttt] 集合一使用滑动窗口分组: size={cfg.group_size}, stride={stride_info}, groups={len(groups)}"
+        )
+    else:
+        print(f"[ttt] 集合一按 {cfg.group_size} 张分组，共 {len(groups)} 组")
 
     total_groups = len(groups)
     for it in range(cfg.iters):

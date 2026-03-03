@@ -17,6 +17,10 @@ from scripts.vrnerf_sampler import (
     load_scenes_used,
     get_dense_sparse_splits_with_paths,
 )
+from scripts.process_fisheye import (
+    process_scene_cameras_fisheye,
+    get_processed_image_path,
+)
 from ttt import TTTConfig, load_ttt_config, run_ttt
 from itr import ITRConfig, itr, load_itr_config
 from src.utils.model_loading import load_model_with_fallback
@@ -327,6 +331,7 @@ def main():
     # 固定使用 dense 视角采样
     num_context = int(exp_cfg.get("num_context", 32))
     camera_id = str(exp_cfg.get("camera_id", "20"))
+    fisheye_camera_id = str(exp_cfg.get("fisheye_camera_id", "4"))
     metrics_root_dir = Path(str(exp_cfg.get("metrics_dir", "outputs/nvs_compare")))
     image_root_dir = Path(str(exp_cfg.get("image_root_dir", "exp-results")))
 
@@ -393,12 +398,13 @@ def main():
             tags=wandb_tags,
             config={
                 "num_context": num_context,
+                "camera_id": camera_id,
+                "fisheye_camera_id": fisheye_camera_id,
                 "dense_sparse": {
                     "pool_size": pool_size,
                     "pool_stride": pool_stride,
                     "seed": dense_seed,
                     "images_subdir": images_subdir,
-                    "camera_id": camera_id,
                 },
                 "device": str(device),
                 "scenes": [s["scene"] for s in scenes],
@@ -406,6 +412,19 @@ def main():
         )
     else:
         run = None
+
+    # Load fisheye configuration
+    fisheye_scenes = []
+    fisheye_json_path = Path(dataset_root) / "fisheye.json"
+    if fisheye_json_path.exists():
+        try:
+            with open(fisheye_json_path, "r") as f:
+                fisheye_scenes = json.load(f)
+            print(f"[info] Loaded fisheye scenes: {fisheye_scenes}")
+        except Exception as e:
+            print(f"[warn] Failed to load fisheye.json: {e}")
+    else:
+        print(f"[info] fisheye.json not found at {fisheye_json_path}")
 
     all_results = {}
 
@@ -423,13 +442,45 @@ def main():
         print(f"Processing scene: {scene}")
         print(f"{'='*60}")
 
+        # Determine camera_id to use for this scene
+        is_fisheye_scene = scene in fisheye_scenes
+        active_camera_id = fisheye_camera_id if is_fisheye_scene else camera_id
+
+        # Process fisheye images if this scene is in fisheye list
+        if is_fisheye_scene:
+            # Check if fisheye images are already processed
+            undistorted_dir = scene_dir / images_subdir / fisheye_camera_id / "undistorted"
+            if undistorted_dir.exists() and any(undistorted_dir.glob("*.jpg")):
+                print(f"[info] Scene {scene} is fisheye scene, using camera_id={fisheye_camera_id}")
+                print(f"[info] Found existing processed images in {undistorted_dir}, skipping processing")
+            else:
+                print(f"[info] Scene {scene} detected as fisheye scene, using camera_id={fisheye_camera_id}, processing...")
+                try:
+                    processed_cameras = process_scene_cameras_fisheye(
+                        scene_dir=scene_dir,
+                        camera_ids=[fisheye_camera_id],
+                        images_subdir=images_subdir,
+                        output_subdir="undistorted",
+                        balance=0.0,
+                        crop=True,
+                        verbose=True,
+                    )
+                    if processed_cameras:
+                        print(f"[info] Successfully processed fisheye cameras: {processed_cameras}")
+                    else:
+                        print(f"[warn] No fisheye cameras were successfully processed")
+                except Exception as e:
+                    print(f"[warn] Failed to process fisheye images for {scene}: {e}")
+        else:
+            print(f"[info] Scene {scene} is normal scene, using camera_id={camera_id}")
+
         # 使用 dense camera-block 策略获取 input/test 视角及对应路径
-        print(f"[info] 使用 camera block {camera_id}，strategy=dense")
+        print(f"[info] 使用 camera block {active_camera_id}，strategy=dense{'（鱼眼场景）' if is_fisheye_scene else ''}")
         try:
             dense_splits = get_dense_sparse_splits_with_paths(
                 scene=scene,
                 scene_dir=scene_dir,
-                camera_id=camera_id,
+                camera_id=active_camera_id,
                 setting="dense",
                 num_input=num_context,
                 pool_size=pool_size,
@@ -452,13 +503,33 @@ def main():
 
         print(f"[info] 输入视角数: {len(input_paths)}, 测试视角数: {len(test_paths)}")
 
-        # Load and preprocess context (input) images: [-1, 1] -> [0, 1] after process_image
-        ctx_images_raw = [process_image(str(p)) for p in input_paths]
+        # Load and preprocess context (input) images
+        # For fisheye scenes, try to use processed images; for normal scenes, use original images
+        # [-1, 1] -> [0, 1] after process_image
+        if is_fisheye_scene:
+            ctx_images_raw = [
+                process_image(str(get_processed_image_path(p, images_subdir=images_subdir)))
+                for p in input_paths
+            ]
+        else:
+            ctx_images_raw = [
+                process_image(str(p))
+                for p in input_paths
+            ]
         ctx_images = torch.stack(ctx_images_raw, dim=0).unsqueeze(0).to(device)  # [1, K, 3, 448, 448]
         ctx_images = (ctx_images + 1) * 0.5  # Convert to [0, 1] for model.encoder
 
         # Load and preprocess target images
-        tgt_images_raw = [process_image(str(p)) for p in test_paths]
+        if is_fisheye_scene:
+            tgt_images_raw = [
+                process_image(str(get_processed_image_path(p, images_subdir=images_subdir)))
+                for p in test_paths
+            ]
+        else:
+            tgt_images_raw = [
+                process_image(str(p))
+                for p in test_paths
+            ]
         tgt_images = torch.stack(tgt_images_raw, dim=0).unsqueeze(0).to(device)  # [1, T, 3, 448, 448]
         tgt_images = (tgt_images + 1) * 0.5  # Convert to [0, 1] for model.encoder
 
@@ -598,11 +669,31 @@ def main():
     # 将指标写入 JSON / 文本文件
     metrics_output_dir.mkdir(parents=True, exist_ok=True)
 
+    # 加载并记录 TTT 和 ITR 的完整配置
+    try:
+        ttt_base_cfg = OmegaConf.load("config/ttt.yaml")
+        ttt_cfg_dict = OmegaConf.to_container(ttt_base_cfg, resolve=True)
+        # 应用 overrides
+        if ttt_overrides:
+            ttt_cfg_dict.update(ttt_overrides)
+    except Exception as e:
+        ttt_cfg_dict = {"error": f"Failed to load ttt.yaml: {e}"}
+    
+    try:
+        itr_base_cfg = OmegaConf.load("config/itr.yaml")
+        itr_cfg_dict = OmegaConf.to_container(itr_base_cfg, resolve=True)
+        # 应用 overrides
+        if itr_overrides:
+            itr_cfg_dict.update(itr_overrides)
+    except Exception as e:
+        itr_cfg_dict = {"error": f"Failed to load itr.yaml: {e}"}
+
     # 记录本次实验的关键配置 + 结果
     config_section = {
         "experiment": {
             "num_context": num_context,
             "camera_id": camera_id,
+            "fisheye_camera_id": fisheye_camera_id,
             "metrics_root_dir": str(metrics_root_dir),
             "metrics_run_dir": str(metrics_output_dir),
             "image_root_dir": str(image_root_dir),
@@ -613,6 +704,8 @@ def main():
             "seed": dense_seed,
             "images_subdir": images_subdir,
         },
+        "ttt": ttt_cfg_dict,
+        "itr": itr_cfg_dict,
     }
 
     config_section["wandb"] = {
@@ -659,6 +752,7 @@ def main():
         f.write("Config:\n")
         f.write(f"  num_context      : {num_context}\n")
         f.write(f"  camera_id        : {camera_id}\n")
+        f.write(f"  fisheye_camera_id: {fisheye_camera_id}\n")
         f.write(f"  metrics_root_dir : {metrics_root_dir}\n")
         f.write(f"  metrics_run_dir  : {metrics_output_dir}\n")
         f.write(f"  image_root_dir   : {image_root_dir}\n")
@@ -672,6 +766,24 @@ def main():
         f.write(f"    project : {wandb_project}\n")
         f.write(f"    name    : {wandb_name}\n")
         f.write(f"    tags    : {wandb_tags}\n")
+        
+        # TTT 配置
+        f.write("  ttt:\n")
+        if isinstance(ttt_cfg_dict, dict) and "error" not in ttt_cfg_dict:
+            for key, val in ttt_cfg_dict.items():
+                if key not in ["input_folder", "output_folder", "device"]:
+                    f.write(f"    {key:<20s}: {val}\n")
+        else:
+            f.write(f"    error: {ttt_cfg_dict.get('error', 'Unknown')}\n")
+        
+        # ITR 配置
+        f.write("  itr:\n")
+        if isinstance(itr_cfg_dict, dict) and "error" not in itr_cfg_dict:
+            for key, val in itr_cfg_dict.items():
+                if key not in ["input_folder", "output_folder", "device"]:
+                    f.write(f"    {key:<20s}: {val}\n")
+        else:
+            f.write(f"    error: {itr_cfg_dict.get('error', 'Unknown')}\n")
 
         f.write("\nPer-scene metrics:\n")
         for scene, results in all_results.items():
@@ -732,7 +844,17 @@ def main():
                     title="LPIPS vs Scene",
                     stroke="method",
                 ),
-                # 仍然记录一下总体平均，方便比较
+                # 记录平均值到同一个 namespace，覆盖循环中最后记录的单个场景值
+                "metrics/feed_forward/psnr": avg_ff_psnr,
+                "metrics/feed_forward/ssim": avg_ff_ssim,
+                "metrics/feed_forward/lpips": avg_ff_lpips,
+                "metrics/ttt/psnr": avg_ttt_psnr,
+                "metrics/ttt/ssim": avg_ttt_ssim,
+                "metrics/ttt/lpips": avg_ttt_lpips,
+                "metrics/itr/psnr": avg_itr_psnr,
+                "metrics/itr/ssim": avg_itr_ssim,
+                "metrics/itr/lpips": avg_itr_lpips,
+                # 仍然记录一下在 summary namespace，方便查看详细信息
                 "summary/feed_forward/psnr": avg_ff_psnr,
                 "summary/feed_forward/ssim": avg_ff_ssim,
                 "summary/feed_forward/lpips": avg_ff_lpips,

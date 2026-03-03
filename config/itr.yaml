@@ -11,10 +11,11 @@ interp_frames: 2
 seed: 123
 
 # Modules to finetune (matched by parameter name substring)
+# 选项说明:
+#   - encoder.camera_head: 微调相机姿态预测头 (推荐)
+#   - encoder.depth_head: 微调深度估计头 (可选)
 train_components:
-  - "encoder.gaussian_adapter"
-  - "encoder.gaussian_param_head"
-  # - "encoder.camera_head"
+  - "encoder.camera_head"
 
 # Device: "auto" | "cuda" | "cpu"
 device: "cuda"

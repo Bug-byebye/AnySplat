@@ -19,7 +19,7 @@ from src.utils.model_loading import load_model_with_fallback
 from self_supervise import pose_interpolation
 from ttt import (
 	get_ttt_parameters,
-	group_images_sequentially,
+	group_images,
 	list_image_paths,
 	load_image_tensors,
 	render_views,
@@ -126,7 +126,7 @@ def itr(model: AnySplat, cfg: ITRConfig) -> None:
 		f"set1: {len(set1_images)} | set2: {len(set2_images)}"
 	)
 
-	groups = group_images_sequentially(set1_images, cfg.group_size)
+	groups = group_images(set1_images, cfg.group_size)
 	print(f"[itr] set1 grouped by {cfg.group_size}, groups: {len(groups)}")
 
 	total_groups = len(groups)

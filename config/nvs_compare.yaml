@@ -1,7 +1,8 @@
 experiment:
   pretrained_model_path: "pretrained_model"
   num_context: 64
-  camera_id: "20"  # used for vr-nerf
+  camera_id: "18"  # used for vr-nerf
+  fisheye_camera_id: "4"  # used for vr-nerf fisheye images
 
   metrics_dir: "exp-results/ttt-exp/nvs_compare"
   image_root_dir: "exp-results/ttt-exp"
@@ -9,6 +10,6 @@ experiment:
 # cover vrnerf_sampler.yaml
 dense_sparse:
   pool_size: 72
-  pool_stride: 3
+  pool_stride: 2
   seed: 123
   images_subdir: "images-jpeg-1k"
