@@ -1,21 +1,22 @@
 experiment:
-  dataset: "matrixcity"
+  dataset: "vr-nerf" # vr-nerf | matrixcity
   pretrained_model_path: "pretrained_model"
-  num_context: 64
-  metrics_dir: "exp-results/ttt-exp/nvs_compare"
-  image_root_dir: "exp-results/ttt-exp"
+  num_context: 32
+  output_metrics_dir: "exp-results/ttt-exp/nvs_compare"
+  output_image_root_dir: "exp-results/ttt-exp"
 
 vr-nerf:
   camera_id: "18"
   fisheye_camera_id: "4"
+  images_subdir: "images-jpeg-1k"
 
 matrixcity:
-  scope: "big"  # big | small |fusion
-  species: "street" # all | street | aerial
+  scope: "big"  # big | small | fusion
+  species: "street"  # all | street | aerial
+  images_subdir: "images"
 
-# cover vrnerf_sampler.yaml
+# Common dense_sparse configuration (can be overridden by dataset-specific config)
 dense_sparse:
-  pool_size: 72
+  pool_size: 48
   pool_stride: 2
   seed: 123
-  images_subdir: "images-jpeg-1k"
