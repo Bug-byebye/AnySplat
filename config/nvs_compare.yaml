@@ -1,11 +1,17 @@
 experiment:
+  dataset: "matrixcity"
   pretrained_model_path: "pretrained_model"
   num_context: 64
-  camera_id: "18"  # used for vr-nerf
-  fisheye_camera_id: "4"  # used for vr-nerf fisheye images
-
   metrics_dir: "exp-results/ttt-exp/nvs_compare"
   image_root_dir: "exp-results/ttt-exp"
+
+vr-nerf:
+  camera_id: "18"
+  fisheye_camera_id: "4"
+
+matrixcity:
+  scope: "big"  # big | small |fusion
+  species: "street" # all | street | aerial
 
 # cover vrnerf_sampler.yaml
 dense_sparse:

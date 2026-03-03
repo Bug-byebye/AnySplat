@@ -13,11 +13,11 @@ from src.model.encoder.vggt.utils.pose_enc import pose_encoding_to_extri_intri
 from src.utils.image import process_image
 from src.evaluation.metrics import compute_lpips, compute_psnr, compute_ssim
 from src.misc.image_io import save_image
-from scripts.vrnerf_sampler import (
+from scripts.vrnerf.vrnerf_sampler import (
     load_scenes_used,
     get_dense_sparse_splits_with_paths,
 )
-from scripts.process_fisheye import (
+from scripts.vrnerf.process_fisheye import (
     process_scene_cameras_fisheye,
     get_processed_image_path,
 )

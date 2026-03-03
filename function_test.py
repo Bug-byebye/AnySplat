@@ -5,7 +5,7 @@
 
 from pathlib import Path
 
-from scripts.vrnerf_sampler import (
+from scripts.vrnerf.vrnerf_sampler import (
     get_dense_sparse_splits,
     get_dense_sparse_splits_with_paths,
 )
