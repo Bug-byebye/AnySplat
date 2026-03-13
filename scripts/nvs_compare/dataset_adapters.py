@@ -19,6 +19,10 @@ from scripts.vrnerf.vrnerf_sampler import (
     load_scenes_used as vrnerf_load_scenes_used,
     get_dense_sparse_splits_with_paths as vrnerf_get_dense_sparse_splits_with_paths,
 )
+from scripts.dl3dv_evaluation.dl3dv_evaluation_sampler import (
+    load_scenes_used as dl3dv_evaluation_load_scenes_used,
+    get_dense_sparse_splits_with_paths as dl3dv_evaluation_get_dense_sparse_splits_with_paths,
+)
 
 
 @dataclass
@@ -56,13 +60,21 @@ class VRNerfAdapter(DatasetAdapter):
         self.vr_sampler_cfg = vr_sampler_cfg
         self.vr_sampler_dict = vr_sampler_dict
 
-        self.dataset_root = Path(str(cfg_dict.get("dataset_root", vr_sampler_dict.get("dataset_root", "datasets-raw/vrnerf"))))
-        self.scenes_path = Path(str(cfg_dict.get("scenes", vr_sampler_dict.get("scenes", "datasets-raw/vrnerf/scenes_used.json"))))
-
         vr_cfg = cfg.get("vr-nerf", {})
+        # Try vr-nerf config, then vr_sampler config, then default
+        self.dataset_root = Path(str(vr_cfg.get("dataset_root", vr_sampler_dict.get("dataset_root", "datasets-raw/vrnerf"))))
+        self.scenes_path = Path(str(vr_cfg.get("scenes", vr_sampler_dict.get("scenes", "datasets-raw/vrnerf/scenes_used.json"))))
+
         self.camera_id = str(vr_cfg.get("camera_id", "20"))
         self.fisheye_camera_id = str(vr_cfg.get("fisheye_camera_id", "4"))
-        self.images_subdir = str(vr_cfg.get("images_subdir", "images-jpeg-1k"))
+        
+        # Handle images_subdir which can be null or a string
+        images_subdir_raw = vr_cfg.get("images_subdir", None)
+        if images_subdir_raw is None or (isinstance(images_subdir_raw, str) and images_subdir_raw == "null"):
+            # Use default if null
+            self.images_subdir = "images-jpeg-1k"
+        else:
+            self.images_subdir = str(images_subdir_raw)
 
         self.fisheye_scenes = self._load_fisheye_scenes()
 
@@ -115,6 +127,7 @@ class VRNerfAdapter(DatasetAdapter):
         )
         pool_size = int(dense_sparse_cfg.get("pool_size", 72))
         pool_stride = int(dense_sparse_cfg.get("pool_stride", 2))
+        num_test = int(dense_sparse_cfg.get("num_test", 8))
         seed = int(dense_sparse_cfg.get("seed", 0))
 
         for item in scenes:
@@ -129,8 +142,8 @@ class VRNerfAdapter(DatasetAdapter):
                     scene=scene_name,
                     scene_dir=scene_dir,
                     camera_id=active_camera_id,
-                    setting="dense",
                     num_input=num_context,
+                    num_test=num_test,
                     pool_size=pool_size,
                     pool_stride=pool_stride,
                     seed=seed,
@@ -160,11 +173,19 @@ class MatrixCityAdapter(DatasetAdapter):
     def __init__(self, cfg: Any, cfg_dict: dict[str, Any]):
         super().__init__("matrixcity", cfg, cfg_dict)
         matrix_cfg = cfg.get("matrixcity", {})
-        self.dataset_root = Path(str(cfg_dict.get("dataset_root", "datasets/matrixcity")))
+        self.dataset_root = Path(str(matrix_cfg.get("dataset_root", "datasets/matrixcity")))
         self.scope = str(matrix_cfg.get("scope", "big"))
         self.species = str(matrix_cfg.get("species", "street"))
-        self.images_subdir = str(matrix_cfg.get("images_subdir", "images"))
-        scenes_raw = cfg_dict.get("scenes", None)
+        
+        # Handle images_subdir which can be null or a string
+        images_subdir_raw = matrix_cfg.get("images_subdir", None)
+        if images_subdir_raw is None or (isinstance(images_subdir_raw, str) and images_subdir_raw == "null"):
+            # Use default if null
+            self.images_subdir = "images"
+        else:
+            self.images_subdir = str(images_subdir_raw)
+        
+        scenes_raw = matrix_cfg.get("scenes", None)
         self.scenes_path = Path(str(scenes_raw)) if scenes_raw else None
 
     def get_wandb_config(self) -> dict[str, Any]:
@@ -191,6 +212,7 @@ class MatrixCityAdapter(DatasetAdapter):
         )
         pool_size = int(dense_sparse_cfg.get("pool_size", 72))
         pool_stride = int(dense_sparse_cfg.get("pool_stride", 2))
+        num_test = int(dense_sparse_cfg.get("num_test", 8))
         seed = int(dense_sparse_cfg.get("seed", 0))
 
         for item in scenes:
@@ -203,8 +225,8 @@ class MatrixCityAdapter(DatasetAdapter):
                     scene=scene_name,
                     scene_dir=scene_dir,
                     camera_id=None,
-                    setting="dense",
                     num_input=num_context,
+                    num_test=num_test,
                     pool_size=pool_size,
                     pool_stride=pool_stride,
                     seed=seed,
@@ -220,6 +242,84 @@ class MatrixCityAdapter(DatasetAdapter):
                 )
             except Exception as e:
                 print(f"[warn] Skip matrixcity scene '{scene_name}': {e}")
+class DL3DVEvaluationAdapter(DatasetAdapter):
+    def __init__(self, cfg: Any, cfg_dict: dict[str, Any]):
+        super().__init__("dl3dv-evaluation", cfg, cfg_dict)
+        dl3dv_eval_cfg = cfg.get("dl3dv-evaluation", cfg.get("dl3dv", {}))
+        
+        # dataset_root is required
+        self.dataset_root = Path(str(dl3dv_eval_cfg.get("dataset_root", "datasets/dl3dv/DL3DV-Evaluation")))
+        
+        # images_subdir can be null; combine with dataset_root to get base_dir
+        images_subdir_raw = dl3dv_eval_cfg.get("images_subdir", None)
+        if images_subdir_raw is None or (isinstance(images_subdir_raw, str) and images_subdir_raw == "null"):
+            self.base_dir = self.dataset_root
+        else:
+            self.base_dir = self.dataset_root / str(images_subdir_raw)
+        
+        # index specifies which subdirectory under gaussian_splat to use for images
+        self.index = str(dl3dv_eval_cfg.get("index", "images_4"))
+        
+        # split determines which index file to load (train/test)
+        self.split = str(dl3dv_eval_cfg.get("split", "test"))
+        
+        # max_scenes limits the number of scenes to process
+        self.max_scenes = dl3dv_eval_cfg.get("max_scenes", None)
+
+    def get_wandb_config(self) -> dict[str, Any]:
+        return {
+            "dataset": self.dataset_name,
+            "index": self.index,
+            "split": self.split,
+            "base_dir": str(self.base_dir),
+        }
+
+    def get_metrics_experiment_fields(self) -> dict[str, Any]:
+        return {
+            "dataset": self.dataset_name,
+            "split": self.split,
+        }
+
+    def iter_scene_batches(self, num_context: int, dense_sparse_cfg: dict[str, Any]):
+        # Load scenes from dataset_root (will auto-detect /images subdirectory if needed)
+        # Pass the dataset_root, not base_dir, so the function can handle /images lookup
+        scenes = dl3dv_evaluation_load_scenes_used(
+            dataset_root=self.dataset_root,
+            split=self.split,
+            max_scenes=self.max_scenes,
+        )
+        pool_size = dense_sparse_cfg.get("pool_size", None)
+        pool_stride = int(dense_sparse_cfg.get("pool_stride", 1))
+        num_test = int(dense_sparse_cfg.get("num_test", 8))
+        seed = int(dense_sparse_cfg.get("seed", 0))
+
+        for item in scenes:
+            scene_name = item["scene"]
+            scene_dir = item["scene_dir"]
+            if not scene_dir.exists():
+                continue
+            try:
+                splits = dl3dv_evaluation_get_dense_sparse_splits_with_paths(
+                    scene_dir=scene_dir,
+                    index=self.index,
+                    num_input=num_context,
+                    num_test=num_test,
+                    seed=seed,
+                    pool_size=pool_size,
+                    pool_stride=pool_stride,
+                )
+                if not splits:
+                    continue
+                split = splits[0]
+                yield SceneBatch(
+                    name=scene_name,
+                    scene_dir=scene_dir,
+                    sample=SceneSample(input_paths=list(split["input_paths"]), test_paths=list(split["test_paths"])),
+                )
+            except Exception as e:
+                print(f"[warn] Skip dl3dv-evaluation scene '{scene_name}': {e}")
+
+
 
 
 def build_dataset_adapter(cfg: Any) -> DatasetAdapter:
@@ -243,4 +343,7 @@ def build_dataset_adapter(cfg: Any) -> DatasetAdapter:
     if dataset_name == "matrixcity":
         return MatrixCityAdapter(cfg, cfg_dict)
 
-    raise ValueError(f"Unknown dataset: {dataset_name}. Supported: 'vr-nerf', 'matrixcity'")
+    if dataset_name in {"dl3dv-evaluation", "dl3dv"}:
+        return DL3DVEvaluationAdapter(cfg, cfg_dict)
+
+    raise ValueError(f"Unknown dataset: {dataset_name}. Supported: 'vr-nerf', 'matrixcity', 'dl3dv-evaluation'")

@@ -3,12 +3,12 @@ pretrained_model_path: "pretrained_model"
 input_folder: "exp-results/ss-exp/vrnerf_20260205_062447/kitchen/input_images"
 output_folder: "exp-results/ttt-exp"
 
-iters: 6
+iters: 3
 # interp_frames: 5
-image_sorted: true
-group_size: 8
+image_sorted: false
+group_size: 10
 group_mode: "sliding"  # sequential | sliding
-group_stride: 2         # only used when group_mode=sliding
+group_stride: 4         # only used when group_mode=sliding
 seed: 123
 
 train_components:
@@ -20,7 +20,7 @@ train_components:
 device: "cuda"
 
 export_ply: true
-lr: 0.0002
+lr: 0.0001
 # "l1_mse" | "lpips" | "l1_mse_lpips"
 loss_type: "l1_mse_lpips"
 
@@ -28,4 +28,4 @@ l1_weight: 1.0
 mse_weight: 1.0
 lpips_weight: 0.05
 
-context_loss_weight: 1.0
+context_loss_weight: 1.5

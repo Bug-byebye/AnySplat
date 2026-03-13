@@ -1,0 +1,92 @@
+[
+  {
+    "virtual_view_idx": 0,
+    "virtual_raw_file": "virtual_raw_000.jpg",
+    "virtual_difix_file": "virtual_difix_000.jpg",
+    "reference_file": "virtual_ref_000.jpg",
+    "reference_ctx_idx": 2,
+    "pose_distance": 0.014831990003585815,
+    "epoch": 1,
+    "group": 1
+  },
+  {
+    "virtual_view_idx": 1,
+    "virtual_raw_file": "virtual_raw_001.jpg",
+    "virtual_difix_file": "virtual_difix_001.jpg",
+    "reference_file": "virtual_ref_001.jpg",
+    "reference_ctx_idx": 4,
+    "pose_distance": 0.020693089812994003,
+    "epoch": 1,
+    "group": 1
+  },
+  {
+    "virtual_view_idx": 2,
+    "virtual_raw_file": "virtual_raw_002.jpg",
+    "virtual_difix_file": "virtual_difix_002.jpg",
+    "reference_file": "virtual_ref_002.jpg",
+    "reference_ctx_idx": 2,
+    "pose_distance": 0.002272574929520488,
+    "epoch": 1,
+    "group": 1
+  },
+  {
+    "virtual_view_idx": 3,
+    "virtual_raw_file": "virtual_raw_000.jpg",
+    "virtual_difix_file": "virtual_difix_000.jpg",
+    "reference_file": "virtual_ref_000.jpg",
+    "reference_ctx_idx": 0,
+    "pose_distance": 0.024931222200393677,
+    "epoch": 2,
+    "group": 2
+  },
+  {
+    "virtual_view_idx": 4,
+    "virtual_raw_file": "virtual_raw_001.jpg",
+    "virtual_difix_file": "virtual_difix_001.jpg",
+    "reference_file": "virtual_ref_001.jpg",
+    "reference_ctx_idx": 0,
+    "pose_distance": 0.017637431621551514,
+    "epoch": 2,
+    "group": 2
+  },
+  {
+    "virtual_view_idx": 5,
+    "virtual_raw_file": "virtual_raw_002.jpg",
+    "virtual_difix_file": "virtual_difix_002.jpg",
+    "reference_file": "virtual_ref_002.jpg",
+    "reference_ctx_idx": 0,
+    "pose_distance": 0.01906278356909752,
+    "epoch": 2,
+    "group": 2
+  },
+  {
+    "virtual_view_idx": 6,
+    "virtual_raw_file": "virtual_raw_000.jpg",
+    "virtual_difix_file": "virtual_difix_000.jpg",
+    "reference_file": "virtual_ref_000.jpg",
+    "reference_ctx_idx": 3,
+    "pose_distance": 0.009280955418944359,
+    "epoch": 3,
+    "group": 1
+  },
+  {
+    "virtual_view_idx": 7,
+    "virtual_raw_file": "virtual_raw_001.jpg",
+    "virtual_difix_file": "virtual_difix_001.jpg",
+    "reference_file": "virtual_ref_001.jpg",
+    "reference_ctx_idx": 3,
+    "pose_distance": 0.01761430688202381,
+    "epoch": 3,
+    "group": 1
+  },
+  {
+    "virtual_view_idx": 8,
+    "virtual_raw_file": "virtual_raw_002.jpg",
+    "virtual_difix_file": "virtual_difix_002.jpg",
+    "reference_file": "virtual_ref_002.jpg",
+    "reference_ctx_idx": 1,
+    "pose_distance": 0.01771797426044941,
+    "epoch": 3,
+    "group": 1
+  }
+]

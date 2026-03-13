@@ -1,5 +1,5 @@
-dataset_root: "/data/sunchang/datasets-raw/vrnerf"
-scenes: "/data/sunchang/datasets-raw/vrnerf/scenes_used.json"
+# dataset_root: "/data/sunchang/datasets-raw/vrnerf"
+# scenes: "/data/sunchang/datasets-raw/vrnerf/scenes_used.json"
 
 # Below settings are only used by scripts/vrnerf_sampler.py main() (few-shot split writer).
 # nvs_compare.py does not use them, so they are commented to avoid confusion.
@@ -30,9 +30,9 @@ scenes: "/data/sunchang/datasets-raw/vrnerf/scenes_used.json"
 # Dense-view / Sparse-view evaluation (camera-block based)
 # Used by get_dense_sparse_splits() / get_dense_sparse_splits_with_paths()
 # -----------------------------------------------------------------------------
-dense_sparse:
-  pool_size: 32
-  pool_stride: 2        # Every other image: 1st, 3rd, 5th...
-  seed: 0               # For reproducible 48/32-view sampling
-  images_subdir: images-jpeg-1k
+# dense_sparse:
+#   pool_size: 32
+#   pool_stride: 2        # Every other image: 1st, 3rd, 5th...
+#   seed: 0               # For reproducible 48/32-view sampling
+#   images_subdir: images-jpeg-1k
 

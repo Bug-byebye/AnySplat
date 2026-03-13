@@ -117,14 +117,16 @@ def _build_candidate_pool_from_camera_block(
 
 def _split_test_views_from_pool(
     candidate_pool: List[str],
-    setting: str,
+    num_test: int,
+    seed: int = 0,
 ) -> dict:
     """
-    Split test views from candidate pool according to evaluation setting.
+    Split test views from candidate pool uniformly and randomly.
 
     Args:
         candidate_pool: List of frame_ids (sorted by acquisition order)
-        setting: "dense" or "sparse"
+        num_test: Number of test views to select
+        seed: Random seed for reproducibility
 
     Returns:
         {
@@ -133,39 +135,41 @@ def _split_test_views_from_pool(
         }
     """
     n = len(candidate_pool)
-    if setting == "dense":
-        # Every 9th image → 8 test views, 64 input candidate
-        step = 9
-        test_indices = list(range(4, n, step))
-    elif setting == "sparse":
-        # Every 3nd image → 36 test views, 36 input candidate
-        step = 3
-        test_indices = list(range(1, n, step))
-    else:
-        raise ValueError(f"setting must be 'dense' or 'sparse', got {setting}")
-
-    test_set = set(test_indices)
+    if num_test >= n:
+        raise ValueError(f"num_test={num_test} must be less than pool size={n}")
+    
+    # Uniformly select test indices from the pool
+    step = n / num_test
+    test_positions = [int(i * step + step / 2) for i in range(num_test)]
+    
+    # Ensure indices are within bounds
+    test_positions = [min(pos, n - 1) for pos in test_positions]
+    test_positions = sorted(set(test_positions))[:num_test]  # Remove duplicates and limit
+    
+    test_set = set(test_positions)
     input_candidate = [candidate_pool[i] for i in range(n) if i not in test_set]
-    test = [candidate_pool[i] for i in test_indices]
+    test = [candidate_pool[i] for i in test_positions]
 
-    print(f"test_length: {len(test)}, input_candidate_length: {len(input_candidate)}")
+    print(f"[sampler] test_length: {len(test)}, input_candidate_length: {len(input_candidate)}")
 
     return {"test": test, "input_candidate": input_candidate}
 
 
-def _sample_input_views_for_dense_setting(
+def _sample_input_views(
     input_candidate: List[str],
     num_input: int,
     seed: int = 0,
 ) -> List[str]:
     """
-    Sample input views from input candidate pool (dense-view setting only).
+    Sample input views from input candidate pool.
 
-    For 64-view: use all 64.
-    For 48-view: random sample 48.
-    For 32-view: random sample 32.
+    Args:
+        input_candidate: List of candidate frame_ids
+        num_input: Number of input views to select
+        seed: Random seed for reproducibility
 
-    Reproducible via seed.
+    Returns:
+        List of selected frame_ids
     """
     n = len(input_candidate)
     if num_input >= n:
@@ -182,42 +186,35 @@ def get_dense_sparse_splits(
     scene: str,
     scene_dir: Path,
     camera_id: str | int,
-    setting: str,
-    num_input: int | None = None,
+    num_input: int,
+    num_test: int = 8,
     pool_size: int = 72,
     pool_stride: int = 2,
     seed: int = 0,
     images_subdir: str = "images-jpeg-1k",
 ) -> List[dict]:
     """
-    Get input/test view splits for Dense-view or Sparse-view evaluation.
+    Get input/test view splits.
 
     Args:
         scene: Scene name (e.g. "kitchen")
         scene_dir: Path to scene directory (e.g. datasets-raw/vrnerf/kitchen)
         camera_id: Camera block id (e.g. "20")
-        setting: "dense" or "sparse"
-        num_input: For dense-view only. None = use all input candidates.
-                   For dense-view, can also pass 64, 48, 32 to get specific sizes.
-                   When setting is "sparse", this is ignored.
+        num_input: Number of input views
+        num_test: Number of test views (default 8)
         pool_size: Size of candidate pool (default 72)
         pool_stride: Stride when building pool (default 2: every other image)
-        seed: Random seed for input sampling (dense 48/32-view)
+        seed: Random seed for sampling
         images_subdir: Subdir under scene_dir for images
 
     Returns:
-        List of dicts, each:
+        List with one dict:
         {
             "input": list of input frame_ids,
             "test": list of test frame_ids,
-            "setting": "dense" | "sparse",
             "num_input": int,
             "num_test": int,
         }
-
-        For dense-view: returns 3 items (64-view, 48-view, 32-view) if num_input is None.
-        For dense-view with num_input=32: returns 1 item (32-view only).
-        For sparse-view: returns 1 item (all input candidates as input).
     """
     scene_dir = Path(scene_dir)
     # 1) Build candidate pool
@@ -229,48 +226,30 @@ def get_dense_sparse_splits(
         images_subdir=images_subdir,
     )
 
-    # 2) Split test views
-    split = _split_test_views_from_pool(candidate_pool, setting=setting)
+    # 2) Split test views uniformly from pool
+    split = _split_test_views_from_pool(
+        candidate_pool=candidate_pool,
+        num_test=num_test,
+        seed=seed,
+    )
     test = split["test"]
     input_candidate = split["input_candidate"]
 
-    if setting == "sparse":
-        return [
-            {
-                "input": input_candidate,
-                "test": test,
-                "setting": "sparse",
-                "num_input": len(input_candidate),
-                "num_test": len(test),
-            }
-        ]
+    # 3) Sample input views from remaining candidates
+    input_ids = _sample_input_views(
+        input_candidate=input_candidate,
+        num_input=num_input,
+        seed=seed,
+    )
 
-    # 3) Dense-view: construct 64/48/32 input sizes
-    assert setting == "dense"
-    results = []
-
-    if num_input is not None:
-        sizes = [num_input]
-    else:
-        sizes = [64, 48, 32]
-
-    for k in sizes:
-        if k > len(input_candidate):
-            continue
-        input_ids = _sample_input_views_for_dense_setting(
-            input_candidate=input_candidate,
-            num_input=k,
-            seed=seed,
-        )
-        results.append({
+    return [
+        {
             "input": input_ids,
             "test": test,
-            "setting": "dense",
             "num_input": len(input_ids),
             "num_test": len(test),
-        })
-
-    return results
+        }
+    ]
 
 
 def get_dense_sparse_splits_with_paths(
@@ -278,8 +257,8 @@ def get_dense_sparse_splits_with_paths(
     scene: str,
     scene_dir: Path,
     camera_id: str | int,
-    setting: str,
-    num_input: int | None = None,
+    num_input: int,
+    num_test: int = 8,
     pool_size: int = 72,
     pool_stride: int = 2,
     seed: int = 0,
@@ -293,8 +272,8 @@ def get_dense_sparse_splits_with_paths(
         scene=scene,
         scene_dir=scene_dir,
         camera_id=camera_id,
-        setting=setting,
         num_input=num_input,
+        num_test=num_test,
         pool_size=pool_size,
         pool_stride=pool_stride,
         seed=seed,
@@ -526,11 +505,28 @@ def _resolve_vrnerf_image_path(
     images_subdir: str = "images-jpeg-1k",
 ) -> Path:
     """
-    Map a VR-NeRF frame id (e.g. "10/000123") to an on-disk image file path.
+    Map a VR-NeRF frame id (e.g. "18/20_DSC0010") to an on-disk image file path.
 
-    The downloader saves images under:
-      <scene_dir>/images-jpeg-1k/<frame_id>.jpg
+    Dataset structure:
+      scene_dir/
+        images-jpeg-1k/          (images_subdir)
+          18/                    (camera_id)
+            20_DSC0010.jpg       (image file)
+            20_DSC0011.jpg
+          4/                     (fisheye_camera_id)
+            image1.jpg
+            undistorted/         (fisheye processed images)
+              image1.jpg
 
+    Args:
+        scene_dir: Path to scene directory
+        frame_id: Frame identifier in format "{camera_id}/{filename_without_ext}"
+                 e.g. "18/20_DSC0010" or could be "4/image1"
+        images_subdir: Subdirectory containing image blocks
+
+    Returns:
+        Path to the image file (with .jpg, .jpeg, or .png extension)
+        
     This resolver is lenient:
     - if frame_id already has an extension, we use it directly
     - otherwise we try common extensions in order

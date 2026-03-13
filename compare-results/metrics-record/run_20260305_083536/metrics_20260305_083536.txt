@@ -1,0 +1,108 @@
+================================================================================
+Configuration Summary
+================================================================================
+
+Experiment Config (nvs_compare.yaml::experiment):
+--------------------------------------------------------------------------------
+  dataset                 : dl3dv-evaluation
+  pretrained_model_path   : pretrained_model
+  pool_size               : 48
+  pool_stride             : 2
+  num_context             : 32
+  output_metrics_dir      : compare-results/metrics-record
+  output_image_root_dir   : compare-results
+  seed                    : 123
+
+Dataset-Specific Config (dl3dv-evaluation):
+--------------------------------------------------------------------------------
+  dataset_root            : /data/sunchang/datasets-raw/dl3dv/DL3DV-Evaluation
+  index                   : images_4
+  images_subdir           : None
+  num_test                : 8
+  max_scenes              : None
+
+Dense-Sparse Sampling:
+--------------------------------------------------------------------------------
+  pool_size               : 48
+  pool_stride             : 2
+  seed                    : 123
+
+TTT Config (config/ttt.yaml):
+--------------------------------------------------------------------------------
+  pretrained_model_path   : pretrained_model
+  input_folder            : exp-results/ss-exp/vrnerf_20260205_062447/kitchen/input_images
+  output_folder           : exp-results/ttt-exp
+  iters                   : 1
+  image_sorted            : True
+  group_size              : 16
+  group_mode              : sliding
+  group_stride            : 4
+  seed                    : 123
+  train_components        : ['encoder.gaussian_param_head']
+  device                  : cuda
+  export_ply              : True
+  lr                      : 0.0001
+  loss_type               : l1_mse_lpips
+  l1_weight               : 1.0
+  mse_weight              : 1.0
+  lpips_weight            : 0.05
+  context_loss_weight     : 1.5
+
+ITR Config (config/itr.yaml):
+--------------------------------------------------------------------------------
+  pretrained_model_path   : pretrained_model
+  input_folder            : exp-results/ss-exp/vrnerf_20260205_062447/kitchen/input_images
+  output_folder           : exp-results/itr-exp
+  iters                   : 5
+  image_sorted            : True
+  group_size              : 8
+  interp_frames           : 2
+  seed                    : 123
+  train_components        : ['encoder.camera_head']
+  device                  : cuda
+  export_ply              : True
+  lr                      : 0.0002
+  loss_type               : l1_mse_lpips
+  l1_weight               : 1.0
+  mse_weight              : 1.0
+  lpips_weight            : 0.05
+  context_gt_weight       : 1.0
+  context_consistency_weight: 0.1
+  target_consistency_weight: 0.05
+
+================================================================================
+
+Per-scene metrics:
+================================================================================
+02267acf6fb98de36173bf4e7db9734c8c421dcb00267e42964dc15134cbb1be feed_forward    PSNR=20.60 SSIM=0.710 LPIPS=0.218
+02267acf6fb98de36173bf4e7db9734c8c421dcb00267e42964dc15134cbb1be ttt             PSNR=18.21 SSIM=0.699 LPIPS=0.250
+02267acf6fb98de36173bf4e7db9734c8c421dcb00267e42964dc15134cbb1be itr             PSNR=6.88 SSIM=0.383 LPIPS=0.679
+0238de14089be825251ca9a7c91c471a941bde76f78ae7b637ef306f30df544e feed_forward    PSNR=17.39 SSIM=0.467 LPIPS=0.366
+0238de14089be825251ca9a7c91c471a941bde76f78ae7b637ef306f30df544e ttt             PSNR=16.37 SSIM=0.458 LPIPS=0.452
+0238de14089be825251ca9a7c91c471a941bde76f78ae7b637ef306f30df544e itr             PSNR=13.79 SSIM=0.299 LPIPS=0.575
+05cd8f26e146d8fee12e1f393ba17fd76c3de796dcac9bb5573d9ee508a3c765 feed_forward    PSNR=14.99 SSIM=0.528 LPIPS=0.520
+05cd8f26e146d8fee12e1f393ba17fd76c3de796dcac9bb5573d9ee508a3c765 ttt             PSNR=13.88 SSIM=0.565 LPIPS=0.577
+05cd8f26e146d8fee12e1f393ba17fd76c3de796dcac9bb5573d9ee508a3c765 itr             PSNR=13.40 SSIM=0.474 LPIPS=0.616
+077339a1f609c142d7988dcda4f890a88ff8ab3f944485e989f06181b4cb1429 feed_forward    PSNR=14.92 SSIM=0.434 LPIPS=0.469
+077339a1f609c142d7988dcda4f890a88ff8ab3f944485e989f06181b4cb1429 ttt             PSNR=14.78 SSIM=0.443 LPIPS=0.468
+077339a1f609c142d7988dcda4f890a88ff8ab3f944485e989f06181b4cb1429 itr             PSNR=13.48 SSIM=0.385 LPIPS=0.524
+0ec879405fe1a7a393876fed993657e0f7dda7fa16788ad48c669e9b67215a3c feed_forward    PSNR=18.87 SSIM=0.545 LPIPS=0.324
+0ec879405fe1a7a393876fed993657e0f7dda7fa16788ad48c669e9b67215a3c ttt             PSNR=16.29 SSIM=0.544 LPIPS=0.359
+0ec879405fe1a7a393876fed993657e0f7dda7fa16788ad48c669e9b67215a3c itr             PSNR=11.88 SSIM=0.331 LPIPS=0.641
+14452271416631599c6e7a2362b2c5330e08fbf0ec2adfea7930d84cba4e3d69 feed_forward    PSNR=14.95 SSIM=0.300 LPIPS=0.454
+14452271416631599c6e7a2362b2c5330e08fbf0ec2adfea7930d84cba4e3d69 ttt             PSNR=12.69 SSIM=0.274 LPIPS=0.572
+14452271416631599c6e7a2362b2c5330e08fbf0ec2adfea7930d84cba4e3d69 itr             PSNR=13.78 SSIM=0.261 LPIPS=0.527
+1881f3837a7e28b96a43fa87b9cc5a406104c776cda31f808e1c48d5ed8b8a6d feed_forward    PSNR=19.13 SSIM=0.632 LPIPS=0.408
+1881f3837a7e28b96a43fa87b9cc5a406104c776cda31f808e1c48d5ed8b8a6d ttt             PSNR=17.07 SSIM=0.590 LPIPS=0.484
+1881f3837a7e28b96a43fa87b9cc5a406104c776cda31f808e1c48d5ed8b8a6d itr             PSNR=12.61 SSIM=0.369 LPIPS=0.631
+18ae5d387baba346017f225c7661c885ab4ce1ef7dd028a9ad80773002528557 feed_forward    PSNR=17.87 SSIM=0.568 LPIPS=0.371
+18ae5d387baba346017f225c7661c885ab4ce1ef7dd028a9ad80773002528557 ttt             PSNR=16.43 SSIM=0.549 LPIPS=0.441
+18ae5d387baba346017f225c7661c885ab4ce1ef7dd028a9ad80773002528557 itr             PSNR=14.71 SSIM=0.412 LPIPS=0.509
+1e5ce991775e9266dcd553306ae9cc153ffd19101b789ff66526bc3877c54fdf feed_forward    PSNR=18.61 SSIM=0.513 LPIPS=0.245
+1e5ce991775e9266dcd553306ae9cc153ffd19101b789ff66526bc3877c54fdf ttt             PSNR=16.82 SSIM=0.516 LPIPS=0.297
+1e5ce991775e9266dcd553306ae9cc153ffd19101b789ff66526bc3877c54fdf itr             PSNR=13.67 SSIM=0.284 LPIPS=0.554
+
+Averages:
+Feed Forward:  PSNR=17.48, SSIM=0.522, LPIPS=0.375
+TTT:          PSNR=15.84, SSIM=0.515, LPIPS=0.433
+ITR:          PSNR=12.69, SSIM=0.356, LPIPS=0.584

@@ -1,0 +1,2458 @@
+{
+  "config": {
+    "experiment": {
+      "dataset": "dl3dv-evaluation",
+      "pretrained_model_path": "pretrained_model",
+      "pool_size": 36,
+      "pool_stride": 2,
+      "num_context": 24,
+      "num_test": 8,
+      "num_train": 16,
+      "train_distribution": "uniform",
+      "output_metrics_dir": "compare-results/metrics-record",
+      "output_image_root_dir": "compare-results",
+      "seed": 123
+    },
+    "dataset_config_dl3dv-evaluation": {
+      "dataset_root": "/data/sunchang/datasets-raw/dl3dv/DL3DV-Evaluation",
+      "index": "images_4",
+      "images_subdir": null,
+      "max_scenes": null
+    },
+    "dense_sparse": {
+      "pool_size": 36,
+      "pool_stride": 2,
+      "seed": 123
+    },
+    "ttt_config": {
+      "pretrained_model_path": "pretrained_model",
+      "input_folder": "exp-results/ss-exp/vrnerf_20260205_062447/kitchen/input_images",
+      "output_folder": "exp-results/ttt-exp",
+      "iters": 3,
+      "image_sorted": false,
+      "group_size": 10,
+      "group_mode": "sliding",
+      "group_stride": 4,
+      "seed": 123,
+      "train_components": [
+        "encoder.gaussian_param_head"
+      ],
+      "device": "cuda",
+      "export_ply": true,
+      "lr": 0.0001,
+      "loss_type": "l1_mse_lpips",
+      "l1_weight": 1.0,
+      "mse_weight": 1.0,
+      "lpips_weight": 0.05,
+      "context_loss_weight": 1.5,
+      "num_train": 16,
+      "train_distribution": "uniform"
+    },
+    "itr_config": {
+      "pretrained_model_path": "pretrained_model",
+      "input_folder": "exp-results/ss-exp/vrnerf_20260205_062447/kitchen/input_images",
+      "output_folder": "exp-results/itr-exp",
+      "iters": 5,
+      "image_sorted": true,
+      "group_size": 8,
+      "interp_frames": 2,
+      "seed": 123,
+      "train_components": [
+        "encoder.camera_head"
+      ],
+      "device": "cuda",
+      "export_ply": true,
+      "lr": 0.0002,
+      "loss_type": "l1_mse_lpips",
+      "l1_weight": 1.0,
+      "mse_weight": 1.0,
+      "lpips_weight": 0.05,
+      "context_gt_weight": 1.0,
+      "context_consistency_weight": 0.1,
+      "target_consistency_weight": 0.05,
+      "num_train": 16,
+      "train_distribution": "uniform"
+    },
+    "diffi_enhance_config": {
+      "pretrained_model_path": "pretrained_model",
+      "input_folder": "exp-results/ss-exp/vrnerf_20260205_062447/kitchen/input_images",
+      "output_folder": "exp-results/diffi-enhance-exp",
+      "iters": 5,
+      "image_sorted": true,
+      "group_size": 8,
+      "group_mode": "sequential",
+      "group_stride": null,
+      "interp_frames": 3,
+      "seed": 123,
+      "num_train": 16,
+      "train_distribution": "uniform",
+      "device": "cuda",
+      "export_ply": true,
+      "difix_prompt": "remove degradation",
+      "difix_num_inference_steps": 1,
+      "difix_timesteps": [
+        199
+      ],
+      "difix_guidance_scale": 0.0
+    },
+    "wandb": {
+      "mode": "online",
+      "project": "anysplat",
+      "name": "de-test",
+      "tags": [
+        "nvs",
+        "dl3dv_evaluation"
+      ]
+    }
+  },
+  "per_scene": {
+    "02267acf6fb98de36173bf4e7db9734c8c421dcb00267e42964dc15134cbb1be": {
+      "feed_forward": {
+        "psnr": 22.475784301757812,
+        "ssim": 0.7779185771942139,
+        "lpips": 0.1467921882867813,
+        "psnr_per_view": [
+          22.45941925048828,
+          22.26254653930664,
+          21.995262145996094,
+          22.241531372070312,
+          23.030189514160156,
+          22.642444610595703,
+          22.664199829101562,
+          22.510679244995117
+        ],
+        "ssim_per_view": [
+          0.7744227051734924,
+          0.7451942563056946,
+          0.7866575121879578,
+          0.7677707672119141,
+          0.8040485382080078,
+          0.7974745631217957,
+          0.7955346703529358,
+          0.7522456645965576
+        ],
+        "lpips_per_view": [
+          0.15472540259361267,
+          0.15794122219085693,
+          0.1415172517299652,
+          0.14418275654315948,
+          0.13692454993724823,
+          0.13284090161323547,
+          0.144069105386734,
+          0.16213634610176086
+        ]
+      },
+      "ttt": {
+        "psnr": 22.53299903869629,
+        "ssim": 0.7871376872062683,
+        "lpips": 0.1531466245651245,
+        "psnr_per_view": [
+          22.181222915649414,
+          22.0811824798584,
+          21.879051208496094,
+          22.228084564208984,
+          23.39129638671875,
+          23.156829833984375,
+          23.32547378540039,
+          22.020856857299805
+        ],
+        "ssim_per_view": [
+          0.7695844769477844,
+          0.7448679804801941,
+          0.7869000434875488,
+          0.788374125957489,
+          0.8286649584770203,
+          0.8184075355529785,
+          0.8204560279846191,
+          0.7398461699485779
+        ],
+        "lpips_per_view": [
+          0.17022740840911865,
+          0.1739693284034729,
+          0.1540825515985489,
+          0.14904874563217163,
+          0.13347160816192627,
+          0.12845905125141144,
+          0.13320095837116241,
+          0.1827133297920227
+        ]
+      },
+      "diffi_enhance": {
+        "psnr": 21.919281005859375,
+        "ssim": 0.7501500844955444,
+        "lpips": 0.16762349009513855,
+        "psnr_per_view": [
+          22.284517288208008,
+          21.655853271484375,
+          22.420833587646484,
+          22.770061492919922,
+          23.097049713134766,
+          21.114885330200195,
+          20.455753326416016,
+          21.555286407470703
+        ],
+        "ssim_per_view": [
+          0.7816303372383118,
+          0.7221625447273254,
+          0.8016689419746399,
+          0.8006431460380554,
+          0.8109881281852722,
+          0.7157365679740906,
+          0.6596924662590027,
+          0.7086789011955261
+        ],
+        "lpips_per_view": [
+          0.16956764459609985,
+          0.17981791496276855,
+          0.1480817347764969,
+          0.15182572603225708,
+          0.14700044691562653,
+          0.16718238592147827,
+          0.18989603221416473,
+          0.1876159906387329
+        ],
+        "virtual_ref_mapping": [
+          {
+            "virtual_view_idx": 0,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 4,
+            "pose_distance": 0.0028985885437577963,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 1,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.015874113887548447,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 2,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 4,
+            "pose_distance": 0.0012380188563838601,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 3,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 0,
+            "pose_distance": 0.009939299896359444,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 4,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 7,
+            "pose_distance": 0.04639362543821335,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 5,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 2,
+            "pose_distance": 0.005163217894732952,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 6,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.023494001477956772,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 7,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 5,
+            "pose_distance": 0.013422313146293163,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 8,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 0,
+            "pose_distance": 0.012708012945950031,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 9,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.03702229633927345,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 10,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 2,
+            "pose_distance": 0.008290810510516167,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 11,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 2,
+            "pose_distance": 0.035604678094387054,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 12,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.02809973992407322,
+            "epoch": 5,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 13,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 5,
+            "pose_distance": 0.029361460357904434,
+            "epoch": 5,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 14,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 2,
+            "pose_distance": 0.03568537160754204,
+            "epoch": 5,
+            "group": 1
+          }
+        ]
+      }
+    },
+    "0238de14089be825251ca9a7c91c471a941bde76f78ae7b637ef306f30df544e": {
+      "feed_forward": {
+        "psnr": 19.663436889648438,
+        "ssim": 0.5823415517807007,
+        "lpips": 0.23735547065734863,
+        "psnr_per_view": [
+          20.05245590209961,
+          20.69759178161621,
+          20.4739990234375,
+          19.639232635498047,
+          17.798019409179688,
+          19.517227172851562,
+          20.4364013671875,
+          18.69257164001465
+        ],
+        "ssim_per_view": [
+          0.6228801608085632,
+          0.6502642631530762,
+          0.6647996306419373,
+          0.5753365159034729,
+          0.4483458995819092,
+          0.5498036742210388,
+          0.6105157732963562,
+          0.5367864966392517
+        ],
+        "lpips_per_view": [
+          0.1992739737033844,
+          0.20535534620285034,
+          0.20019808411598206,
+          0.2218807339668274,
+          0.3102893829345703,
+          0.24495510756969452,
+          0.231941357254982,
+          0.28494974970817566
+        ]
+      },
+      "ttt": {
+        "psnr": 19.520662307739258,
+        "ssim": 0.57696533203125,
+        "lpips": 0.2635241448879242,
+        "psnr_per_view": [
+          19.66203498840332,
+          20.008407592773438,
+          20.27044677734375,
+          18.96316909790039,
+          17.87238311767578,
+          19.63335418701172,
+          20.539901733398438,
+          19.21561050415039
+        ],
+        "ssim_per_view": [
+          0.6076439023017883,
+          0.619468629360199,
+          0.6587277054786682,
+          0.5480484962463379,
+          0.46172893047332764,
+          0.5613626837730408,
+          0.6037161350250244,
+          0.5550261735916138
+        ],
+        "lpips_per_view": [
+          0.22531750798225403,
+          0.23520615696907043,
+          0.22091764211654663,
+          0.254802405834198,
+          0.3413074314594269,
+          0.27029505372047424,
+          0.25685518980026245,
+          0.3034918010234833
+        ]
+      },
+      "diffi_enhance": {
+        "psnr": 18.756696701049805,
+        "ssim": 0.5331225991249084,
+        "lpips": 0.2855055332183838,
+        "psnr_per_view": [
+          19.581512451171875,
+          19.351961135864258,
+          19.182947158813477,
+          18.38526153564453,
+          16.99043083190918,
+          18.807947158813477,
+          19.512191772460938,
+          18.2413272857666
+        ],
+        "ssim_per_view": [
+          0.615638792514801,
+          0.5890071392059326,
+          0.6027804017066956,
+          0.4598262310028076,
+          0.40292343497276306,
+          0.5121554732322693,
+          0.5777549147605896,
+          0.5048944354057312
+        ],
+        "lpips_per_view": [
+          0.24599628150463104,
+          0.26048433780670166,
+          0.2560190260410309,
+          0.2869541049003601,
+          0.36403322219848633,
+          0.2813083529472351,
+          0.2691342830657959,
+          0.3201146721839905
+        ],
+        "virtual_ref_mapping": [
+          {
+            "virtual_view_idx": 0,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.001861394615843892,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 1,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 4,
+            "pose_distance": 0.003473118878901005,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 2,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 0,
+            "pose_distance": 0.005327159538865089,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 3,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 2,
+            "pose_distance": 0.020969681441783905,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 4,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 5,
+            "pose_distance": 0.027093548327684402,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 5,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 4,
+            "pose_distance": 0.01798601634800434,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 6,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.017554566264152527,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 7,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.004873316269367933,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 8,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.003875680500641465,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 9,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 4,
+            "pose_distance": 0.012436946853995323,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 10,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.006239178124815226,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 11,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.06847456097602844,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 12,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.026994960382580757,
+            "epoch": 5,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 13,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.034866392612457275,
+            "epoch": 5,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 14,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 4,
+            "pose_distance": 0.021718254312872887,
+            "epoch": 5,
+            "group": 1
+          }
+        ]
+      }
+    },
+    "05cd8f26e146d8fee12e1f393ba17fd76c3de796dcac9bb5573d9ee508a3c765": {
+      "feed_forward": {
+        "psnr": 19.569847106933594,
+        "ssim": 0.6587681770324707,
+        "lpips": 0.35821333527565,
+        "psnr_per_view": [
+          23.162208557128906,
+          20.596010208129883,
+          20.808591842651367,
+          21.319854736328125,
+          18.407434463500977,
+          15.903642654418945,
+          18.04103660583496,
+          18.31998634338379
+        ],
+        "ssim_per_view": [
+          0.769169807434082,
+          0.651840090751648,
+          0.694929301738739,
+          0.706021785736084,
+          0.6111637949943542,
+          0.5429423451423645,
+          0.5953531861305237,
+          0.6987249255180359
+        ],
+        "lpips_per_view": [
+          0.25625625252723694,
+          0.3209918141365051,
+          0.31999391317367554,
+          0.3371676206588745,
+          0.3577817678451538,
+          0.4404253363609314,
+          0.4108075797557831,
+          0.42228251695632935
+        ]
+      },
+      "ttt": {
+        "psnr": 19.165386199951172,
+        "ssim": 0.6668412685394287,
+        "lpips": 0.39157378673553467,
+        "psnr_per_view": [
+          22.71517562866211,
+          20.41016387939453,
+          20.421524047851562,
+          20.39552879333496,
+          17.65314483642578,
+          15.680228233337402,
+          17.75897216796875,
+          18.288339614868164
+        ],
+        "ssim_per_view": [
+          0.7764337062835693,
+          0.6634154915809631,
+          0.702909529209137,
+          0.7180709838867188,
+          0.613002359867096,
+          0.54273921251297,
+          0.6090133190155029,
+          0.7091458439826965
+        ],
+        "lpips_per_view": [
+          0.27736517786979675,
+          0.3501361310482025,
+          0.358422189950943,
+          0.36938777565956116,
+          0.39494752883911133,
+          0.4723394513130188,
+          0.46194443106651306,
+          0.4480475187301636
+        ]
+      },
+      "diffi_enhance": {
+        "psnr": 14.30429458618164,
+        "ssim": 0.48387062549591064,
+        "lpips": 0.5758100152015686,
+        "psnr_per_view": [
+          18.521076202392578,
+          14.856075286865234,
+          14.337007522583008,
+          15.288180351257324,
+          12.185006141662598,
+          11.420795440673828,
+          14.53640365600586,
+          13.289817810058594
+        ],
+        "ssim_per_view": [
+          0.5680130124092102,
+          0.4696204960346222,
+          0.45689883828163147,
+          0.5210750102996826,
+          0.3893558979034424,
+          0.41926565766334534,
+          0.4897468388080597,
+          0.556989312171936
+        ],
+        "lpips_per_view": [
+          0.40043574571609497,
+          0.5599884986877441,
+          0.5906687378883362,
+          0.5384048223495483,
+          0.6171655654907227,
+          0.6496424078941345,
+          0.6028321385383606,
+          0.6473420858383179
+        ],
+        "virtual_ref_mapping": [
+          {
+            "virtual_view_idx": 0,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 4,
+            "pose_distance": 0.0816965252161026,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 1,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.00914100930094719,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 2,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 4,
+            "pose_distance": 0.07030311226844788,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 3,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 5,
+            "pose_distance": 0.015200106427073479,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 4,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.01322550605982542,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 5,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 5,
+            "pose_distance": 0.16906709969043732,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 6,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 5,
+            "pose_distance": 0.09008526057004929,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 7,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 5,
+            "pose_distance": 0.018965095281600952,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 8,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 2,
+            "pose_distance": 0.06452561169862747,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 9,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.008894016966223717,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 10,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 2,
+            "pose_distance": 0.07731666415929794,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 11,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 4,
+            "pose_distance": 0.16579383611679077,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 12,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.10635848343372345,
+            "epoch": 5,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 13,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.10637034475803375,
+            "epoch": 5,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 14,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.05556253716349602,
+            "epoch": 5,
+            "group": 1
+          }
+        ]
+      }
+    },
+    "077339a1f609c142d7988dcda4f890a88ff8ab3f944485e989f06181b4cb1429": {
+      "feed_forward": {
+        "psnr": 21.489511489868164,
+        "ssim": 0.7465806007385254,
+        "lpips": 0.19488047063350677,
+        "psnr_per_view": [
+          23.111610412597656,
+          22.130481719970703,
+          22.502052307128906,
+          22.629146575927734,
+          23.225000381469727,
+          22.175765991210938,
+          14.696187019348145,
+          21.445844650268555
+        ],
+        "ssim_per_view": [
+          0.7988352179527283,
+          0.786992073059082,
+          0.7723864912986755,
+          0.7930957674980164,
+          0.7903037667274475,
+          0.7764954566955566,
+          0.566972017288208,
+          0.6875638365745544
+        ],
+        "lpips_per_view": [
+          0.15597158670425415,
+          0.17541281878948212,
+          0.17721842229366302,
+          0.1807790845632553,
+          0.1670454740524292,
+          0.16823257505893707,
+          0.29835283756256104,
+          0.2360309362411499
+        ]
+      },
+      "ttt": {
+        "psnr": 21.131710052490234,
+        "ssim": 0.7461099624633789,
+        "lpips": 0.22714480757713318,
+        "psnr_per_view": [
+          22.689830780029297,
+          21.32326316833496,
+          22.28809356689453,
+          21.97079849243164,
+          22.588199615478516,
+          21.555940628051758,
+          15.101839065551758,
+          21.535720825195312
+        ],
+        "ssim_per_view": [
+          0.791383683681488,
+          0.7844074368476868,
+          0.7733425498008728,
+          0.793812096118927,
+          0.7807353138923645,
+          0.7747237086296082,
+          0.5843815207481384,
+          0.6860930919647217
+        ],
+        "lpips_per_view": [
+          0.1863599270582199,
+          0.20587435364723206,
+          0.21438626945018768,
+          0.21282978355884552,
+          0.2090277373790741,
+          0.19003097712993622,
+          0.31577736139297485,
+          0.2828719913959503
+        ]
+      },
+      "diffi_enhance": {
+        "psnr": 20.42580223083496,
+        "ssim": 0.6858617067337036,
+        "lpips": 0.24282406270503998,
+        "psnr_per_view": [
+          21.381492614746094,
+          20.852231979370117,
+          21.38288688659668,
+          21.744794845581055,
+          21.25820541381836,
+          21.025541305541992,
+          14.480339050292969,
+          21.280929565429688
+        ],
+        "ssim_per_view": [
+          0.7289579510688782,
+          0.7119579911231995,
+          0.6896702647209167,
+          0.7451391816139221,
+          0.6733536720275879,
+          0.7157564163208008,
+          0.5422571897506714,
+          0.6798009872436523
+        ],
+        "lpips_per_view": [
+          0.20904850959777832,
+          0.22711846232414246,
+          0.23252654075622559,
+          0.22701063752174377,
+          0.231618270277977,
+          0.22618721425533295,
+          0.3333536386489868,
+          0.25572919845581055
+        ],
+        "virtual_ref_mapping": [
+          {
+            "virtual_view_idx": 0,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 5,
+            "pose_distance": 0.03857053071260452,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 1,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 0,
+            "pose_distance": 0.024245427921414375,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 2,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.08109679818153381,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 3,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.024848025292158127,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 4,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 7,
+            "pose_distance": 0.018949927762150764,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 5,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.026676852256059647,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 6,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.0458601675927639,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 7,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 2,
+            "pose_distance": 0.06782697141170502,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 8,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.08106351643800735,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 9,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 0,
+            "pose_distance": 0.029460828751325607,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 10,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 4,
+            "pose_distance": 0.0008603949099779129,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 11,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.06810054928064346,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 12,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 2,
+            "pose_distance": 0.0008954021614044905,
+            "epoch": 5,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 13,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.0007646435406059027,
+            "epoch": 5,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 14,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 0,
+            "pose_distance": 0.011454522609710693,
+            "epoch": 5,
+            "group": 1
+          }
+        ]
+      }
+    },
+    "0ec879405fe1a7a393876fed993657e0f7dda7fa16788ad48c669e9b67215a3c": {
+      "feed_forward": {
+        "psnr": 20.450841903686523,
+        "ssim": 0.5827066898345947,
+        "lpips": 0.240158349275589,
+        "psnr_per_view": [
+          22.172752380371094,
+          20.720176696777344,
+          19.230199813842773,
+          20.260234832763672,
+          21.215362548828125,
+          21.98135757446289,
+          20.9078311920166,
+          17.118824005126953
+        ],
+        "ssim_per_view": [
+          0.724617063999176,
+          0.6046459078788757,
+          0.5115126967430115,
+          0.5177804827690125,
+          0.5738093256950378,
+          0.6436187624931335,
+          0.6687256693840027,
+          0.4169435501098633
+        ],
+        "lpips_per_view": [
+          0.18677860498428345,
+          0.22774165868759155,
+          0.2652023434638977,
+          0.25997135043144226,
+          0.22947102785110474,
+          0.19747087359428406,
+          0.2126571238040924,
+          0.3419739007949829
+        ]
+      },
+      "ttt": {
+        "psnr": 20.686935424804688,
+        "ssim": 0.5882652997970581,
+        "lpips": 0.27646875381469727,
+        "psnr_per_view": [
+          22.125825881958008,
+          20.79117774963379,
+          19.25592613220215,
+          20.426876068115234,
+          21.53911590576172,
+          22.29851531982422,
+          21.730201721191406,
+          17.32784080505371
+        ],
+        "ssim_per_view": [
+          0.7073028683662415,
+          0.5975210070610046,
+          0.5174340605735779,
+          0.524225115776062,
+          0.5898037552833557,
+          0.6539227366447449,
+          0.6799448132514954,
+          0.43596839904785156
+        ],
+        "lpips_per_view": [
+          0.22187508642673492,
+          0.2596909701824188,
+          0.3111880421638489,
+          0.2888595461845398,
+          0.26043999195098877,
+          0.22711241245269775,
+          0.24436016380786896,
+          0.3982239067554474
+        ]
+      },
+      "diffi_enhance": {
+        "psnr": 20.030139923095703,
+        "ssim": 0.5593538284301758,
+        "lpips": 0.27810966968536377,
+        "psnr_per_view": [
+          21.204265594482422,
+          20.593242645263672,
+          19.175006866455078,
+          19.44991683959961,
+          20.857107162475586,
+          21.60753059387207,
+          20.48782730102539,
+          16.866230010986328
+        ],
+        "ssim_per_view": [
+          0.6552595496177673,
+          0.6038921475410461,
+          0.4901852607727051,
+          0.4679785668849945,
+          0.5524255633354187,
+          0.6388956308364868,
+          0.6436492800712585,
+          0.4225447475910187
+        ],
+        "lpips_per_view": [
+          0.2282244861125946,
+          0.257461816072464,
+          0.32028695940971375,
+          0.31139063835144043,
+          0.26379355788230896,
+          0.22310630977153778,
+          0.2353108525276184,
+          0.3853028416633606
+        ],
+        "virtual_ref_mapping": [
+          {
+            "virtual_view_idx": 0,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 2,
+            "pose_distance": 0.016624771058559418,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 1,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 7,
+            "pose_distance": 0.019318372011184692,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 2,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.04281948506832123,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 3,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 0,
+            "pose_distance": 0.006877079606056213,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 4,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.006326677277684212,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 5,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.018071722239255905,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 6,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 5,
+            "pose_distance": 0.07950440049171448,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 7,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 5,
+            "pose_distance": 0.044504065066576004,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 8,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 2,
+            "pose_distance": 0.004302886314690113,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 9,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 0,
+            "pose_distance": 0.014762712642550468,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 10,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.03688748925924301,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 11,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.05256110429763794,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 12,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 5,
+            "pose_distance": 0.06276031583547592,
+            "epoch": 5,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 13,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 4,
+            "pose_distance": 0.09899634122848511,
+            "epoch": 5,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 14,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 0,
+            "pose_distance": 0.0060624536126852036,
+            "epoch": 5,
+            "group": 1
+          }
+        ]
+      }
+    },
+    "14452271416631599c6e7a2362b2c5330e08fbf0ec2adfea7930d84cba4e3d69": {
+      "feed_forward": {
+        "psnr": 19.781543731689453,
+        "ssim": 0.6014152765274048,
+        "lpips": 0.2397388517856598,
+        "psnr_per_view": [
+          20.963220596313477,
+          20.99168586730957,
+          20.389680862426758,
+          19.374134063720703,
+          19.52191925048828,
+          18.973403930664062,
+          20.42588233947754,
+          17.612430572509766
+        ],
+        "ssim_per_view": [
+          0.6380014419555664,
+          0.6430789828300476,
+          0.6261922717094421,
+          0.576826274394989,
+          0.6003928184509277,
+          0.5591847896575928,
+          0.626997709274292,
+          0.5406482219696045
+        ],
+        "lpips_per_view": [
+          0.21824201941490173,
+          0.2169753909111023,
+          0.2259097695350647,
+          0.24395307898521423,
+          0.24517430365085602,
+          0.25427326560020447,
+          0.2246994525194168,
+          0.28868356347084045
+        ]
+      },
+      "ttt": {
+        "psnr": 18.61029052734375,
+        "ssim": 0.5372611880302429,
+        "lpips": 0.297940731048584,
+        "psnr_per_view": [
+          19.28302574157715,
+          19.6498966217041,
+          19.13071060180664,
+          18.37470817565918,
+          18.22594451904297,
+          17.9719181060791,
+          19.5517520904541,
+          16.694372177124023
+        ],
+        "ssim_per_view": [
+          0.5527828335762024,
+          0.5928202271461487,
+          0.5430508255958557,
+          0.5065402388572693,
+          0.5429014563560486,
+          0.5072530508041382,
+          0.5979737639427185,
+          0.4547671973705292
+        ],
+        "lpips_per_view": [
+          0.282459020614624,
+          0.2593221664428711,
+          0.290529727935791,
+          0.3056957721710205,
+          0.2960619330406189,
+          0.30649057030677795,
+          0.26453739404678345,
+          0.37842926383018494
+        ]
+      },
+      "diffi_enhance": {
+        "psnr": 17.631820678710938,
+        "ssim": 0.409568190574646,
+        "lpips": 0.3218638300895691,
+        "psnr_per_view": [
+          18.227191925048828,
+          17.62193489074707,
+          18.233333587646484,
+          17.483739852905273,
+          17.77920150756836,
+          17.449993133544922,
+          18.052160263061523,
+          16.20700454711914
+        ],
+        "ssim_per_view": [
+          0.40181398391723633,
+          0.35350513458251953,
+          0.4352254867553711,
+          0.4175443947315216,
+          0.4223526418209076,
+          0.40009990334510803,
+          0.41958948969841003,
+          0.4264144003391266
+        ],
+        "lpips_per_view": [
+          0.3134792447090149,
+          0.3356258273124695,
+          0.31341126561164856,
+          0.3140741288661957,
+          0.3209730386734009,
+          0.32332295179367065,
+          0.30632153153419495,
+          0.34770259261131287
+        ],
+        "virtual_ref_mapping": [
+          {
+            "virtual_view_idx": 0,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.005807923618704081,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 1,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.008049368858337402,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 2,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 0,
+            "pose_distance": 0.010209092870354652,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 3,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 5,
+            "pose_distance": 0.01070711761713028,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 4,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 7,
+            "pose_distance": 0.11848863959312439,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 5,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.0036015640944242477,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 6,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.04873599112033844,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 7,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 5,
+            "pose_distance": 0.005094359163194895,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 8,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.011371107771992683,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 9,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 2,
+            "pose_distance": 0.008036313578486443,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 10,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.007222956046462059,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 11,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 5,
+            "pose_distance": 0.08413393050432205,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 12,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 5,
+            "pose_distance": 0.040048714727163315,
+            "epoch": 5,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 13,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.03333209082484245,
+            "epoch": 5,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 14,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.00538283959031105,
+            "epoch": 5,
+            "group": 1
+          }
+        ]
+      }
+    },
+    "1881f3837a7e28b96a43fa87b9cc5a406104c776cda31f808e1c48d5ed8b8a6d": {
+      "feed_forward": {
+        "psnr": 25.269195556640625,
+        "ssim": 0.843970537185669,
+        "lpips": 0.22715750336647034,
+        "psnr_per_view": [
+          24.831703186035156,
+          27.23406219482422,
+          26.395111083984375,
+          26.457433700561523,
+          25.252727508544922,
+          25.42812156677246,
+          24.231956481933594,
+          22.322446823120117
+        ],
+        "ssim_per_view": [
+          0.8227744102478027,
+          0.8874093890190125,
+          0.8621240258216858,
+          0.8826600909233093,
+          0.8518103957176208,
+          0.82713383436203,
+          0.8385383486747742,
+          0.7793135046958923
+        ],
+        "lpips_per_view": [
+          0.2443314492702484,
+          0.1827564835548401,
+          0.19063010811805725,
+          0.20654745399951935,
+          0.20538835227489471,
+          0.24639858305454254,
+          0.23512029647827148,
+          0.3060873746871948
+        ]
+      },
+      "ttt": {
+        "psnr": 24.77558708190918,
+        "ssim": 0.8368282318115234,
+        "lpips": 0.2340174913406372,
+        "psnr_per_view": [
+          24.234333038330078,
+          25.953760147094727,
+          25.240190505981445,
+          25.939645767211914,
+          24.83649444580078,
+          24.83353614807129,
+          24.596595764160156,
+          22.57013702392578
+        ],
+        "ssim_per_view": [
+          0.8136353492736816,
+          0.8778122067451477,
+          0.8524131774902344,
+          0.8777689337730408,
+          0.8501827120780945,
+          0.8174159526824951,
+          0.8433616161346436,
+          0.7620360255241394
+        ],
+        "lpips_per_view": [
+          0.24884282052516937,
+          0.18927624821662903,
+          0.19692300260066986,
+          0.21144968271255493,
+          0.21069376170635223,
+          0.24957677721977234,
+          0.24736005067825317,
+          0.3180175721645355
+        ]
+      },
+      "diffi_enhance": {
+        "psnr": 23.908231735229492,
+        "ssim": 0.7962337732315063,
+        "lpips": 0.26762616634368896,
+        "psnr_per_view": [
+          23.666217803955078,
+          25.678192138671875,
+          24.887304306030273,
+          25.23921775817871,
+          23.466346740722656,
+          24.033016204833984,
+          23.63574981689453,
+          20.659812927246094
+        ],
+        "ssim_per_view": [
+          0.7782378792762756,
+          0.8498475551605225,
+          0.8097556233406067,
+          0.8526146411895752,
+          0.7657873034477234,
+          0.7802343368530273,
+          0.8343169093132019,
+          0.6990763545036316
+        ],
+        "lpips_per_view": [
+          0.28781449794769287,
+          0.22396957874298096,
+          0.2320793718099594,
+          0.2426154613494873,
+          0.260187566280365,
+          0.2896181344985962,
+          0.2571272850036621,
+          0.34759727120399475
+        ],
+        "virtual_ref_mapping": [
+          {
+            "virtual_view_idx": 0,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.0029614269733428955,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 1,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 2,
+            "pose_distance": 0.038056645542383194,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 2,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 0,
+            "pose_distance": 0.008012237958610058,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 3,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.008023303002119064,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 4,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 0,
+            "pose_distance": 0.003716539591550827,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 5,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 7,
+            "pose_distance": 0.09317615628242493,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 6,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 7,
+            "pose_distance": 0.02429036796092987,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 7,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.05945374816656113,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 8,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 0,
+            "pose_distance": 0.0036945927422493696,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 9,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 4,
+            "pose_distance": 0.019423380494117737,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 10,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.005587532185018063,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 11,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.022368911653757095,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 12,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 7,
+            "pose_distance": 0.0055945697240531445,
+            "epoch": 5,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 13,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.020880889147520065,
+            "epoch": 5,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 14,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 4,
+            "pose_distance": 0.02194315940141678,
+            "epoch": 5,
+            "group": 1
+          }
+        ]
+      }
+    },
+    "18ae5d387baba346017f225c7661c885ab4ce1ef7dd028a9ad80773002528557": {
+      "feed_forward": {
+        "psnr": 23.958372116088867,
+        "ssim": 0.7576298713684082,
+        "lpips": 0.20650328695774078,
+        "psnr_per_view": [
+          23.81612777709961,
+          24.938928604125977,
+          24.196836471557617,
+          24.854934692382812,
+          23.330114364624023,
+          24.570072174072266,
+          22.747880935668945,
+          23.212080001831055
+        ],
+        "ssim_per_view": [
+          0.7755638957023621,
+          0.7777039408683777,
+          0.7655177712440491,
+          0.7933869361877441,
+          0.748461902141571,
+          0.7820000052452087,
+          0.6830689907073975,
+          0.7353355288505554
+        ],
+        "lpips_per_view": [
+          0.18926352262496948,
+          0.21494776010513306,
+          0.19962099194526672,
+          0.1820008009672165,
+          0.20317715406417847,
+          0.17890667915344238,
+          0.24906057119369507,
+          0.2350488305091858
+        ]
+      },
+      "ttt": {
+        "psnr": 22.83190155029297,
+        "ssim": 0.7415121793746948,
+        "lpips": 0.22049516439437866,
+        "psnr_per_view": [
+          22.79486656188965,
+          22.625741958618164,
+          23.209924697875977,
+          24.33751678466797,
+          22.08679962158203,
+          23.9625186920166,
+          21.899417877197266,
+          21.738431930541992
+        ],
+        "ssim_per_view": [
+          0.7654584050178528,
+          0.7545575499534607,
+          0.7417486310005188,
+          0.790640115737915,
+          0.7328612208366394,
+          0.7607303261756897,
+          0.6575407385826111,
+          0.7285604476928711
+        ],
+        "lpips_per_view": [
+          0.20113936066627502,
+          0.23284554481506348,
+          0.2167033702135086,
+          0.19241850078105927,
+          0.2141539454460144,
+          0.19399689137935638,
+          0.26741811633110046,
+          0.24528568983078003
+        ]
+      },
+      "diffi_enhance": {
+        "psnr": 22.02701187133789,
+        "ssim": 0.6518783569335938,
+        "lpips": 0.26233094930648804,
+        "psnr_per_view": [
+          23.29557228088379,
+          22.63106918334961,
+          20.79659652709961,
+          23.682710647583008,
+          23.909215927124023,
+          22.611652374267578,
+          19.221179962158203,
+          20.068092346191406
+        ],
+        "ssim_per_view": [
+          0.7287650108337402,
+          0.655775785446167,
+          0.5947523713111877,
+          0.7243216633796692,
+          0.7621920704841614,
+          0.6593583226203918,
+          0.5188414454460144,
+          0.571020245552063
+        ],
+        "lpips_per_view": [
+          0.22739413380622864,
+          0.26018139719963074,
+          0.2743735611438751,
+          0.2181578427553177,
+          0.22370390594005585,
+          0.23862208425998688,
+          0.3331144154071808,
+          0.3231000304222107
+        ],
+        "virtual_ref_mapping": [
+          {
+            "virtual_view_idx": 0,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.04926452785730362,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 1,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 7,
+            "pose_distance": 0.007661101408302784,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 2,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.02212528884410858,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 3,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 0,
+            "pose_distance": 0.0009892539819702506,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 4,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.011421051807701588,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 5,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.011098410002887249,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 6,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.0017155546229332685,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 7,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.00910973735153675,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 8,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.06535828858613968,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 9,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 7,
+            "pose_distance": 0.015032249502837658,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 10,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.06441470235586166,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 11,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.033556245267391205,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 12,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.012855134904384613,
+            "epoch": 5,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 13,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.011245539411902428,
+            "epoch": 5,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 14,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 4,
+            "pose_distance": 0.0011625482002273202,
+            "epoch": 5,
+            "group": 1
+          }
+        ]
+      }
+    },
+    "1e5ce991775e9266dcd553306ae9cc153ffd19101b789ff66526bc3877c54fdf": {
+      "feed_forward": {
+        "psnr": 19.080101013183594,
+        "ssim": 0.5352619886398315,
+        "lpips": 0.19972844421863556,
+        "psnr_per_view": [
+          19.831708908081055,
+          21.81107521057129,
+          18.294544219970703,
+          17.638111114501953,
+          19.483646392822266,
+          18.27924346923828,
+          19.650724411010742,
+          17.65174674987793
+        ],
+        "ssim_per_view": [
+          0.5934160351753235,
+          0.7353433966636658,
+          0.48565730452537537,
+          0.46371638774871826,
+          0.5384239554405212,
+          0.48021170496940613,
+          0.5535242557525635,
+          0.4318031370639801
+        ],
+        "lpips_per_view": [
+          0.16908682882785797,
+          0.13212820887565613,
+          0.22207829356193542,
+          0.2530139982700348,
+          0.18227414786815643,
+          0.2089676409959793,
+          0.1981273889541626,
+          0.23215101659297943
+        ]
+      },
+      "ttt": {
+        "psnr": 18.475231170654297,
+        "ssim": 0.5406586527824402,
+        "lpips": 0.22625042498111725,
+        "psnr_per_view": [
+          18.81928253173828,
+          20.234272003173828,
+          17.752532958984375,
+          17.173595428466797,
+          18.99453353881836,
+          18.011390686035156,
+          19.264007568359375,
+          17.552223205566406
+        ],
+        "ssim_per_view": [
+          0.5525446534156799,
+          0.6713832020759583,
+          0.4829502999782562,
+          0.4625612199306488,
+          0.5618966221809387,
+          0.5089714527130127,
+          0.5979520678520203,
+          0.48700985312461853
+        ],
+        "lpips_per_view": [
+          0.20476830005645752,
+          0.17331863939762115,
+          0.26319602131843567,
+          0.28679436445236206,
+          0.2010856717824936,
+          0.22440384328365326,
+          0.21209967136383057,
+          0.24433687329292297
+        ]
+      },
+      "diffi_enhance": {
+        "psnr": 18.027963638305664,
+        "ssim": 0.47020578384399414,
+        "lpips": 0.27986881136894226,
+        "psnr_per_view": [
+          19.661705017089844,
+          22.77918815612793,
+          17.409435272216797,
+          16.720117568969727,
+          18.56055450439453,
+          16.458065032958984,
+          17.187515258789062,
+          15.447124481201172
+        ],
+        "ssim_per_view": [
+          0.544816255569458,
+          0.7364434599876404,
+          0.4602258503437042,
+          0.41748419404029846,
+          0.4755547344684601,
+          0.4051644802093506,
+          0.38139042258262634,
+          0.3405667543411255
+        ],
+        "lpips_per_view": [
+          0.22039605677127838,
+          0.16863682866096497,
+          0.302150696516037,
+          0.3316536545753479,
+          0.2470489740371704,
+          0.31838202476501465,
+          0.29642850160598755,
+          0.35425376892089844
+        ],
+        "virtual_ref_mapping": [
+          {
+            "virtual_view_idx": 0,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.028316423296928406,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 1,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.03539011999964714,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 2,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 1,
+            "pose_distance": 0.01914478838443756,
+            "epoch": 1,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 3,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.010481627658009529,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 4,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 4,
+            "pose_distance": 0.003992103971540928,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 5,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 7,
+            "pose_distance": 0.030992291867733,
+            "epoch": 2,
+            "group": 2
+          },
+          {
+            "virtual_view_idx": 6,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 4,
+            "pose_distance": 0.025929922237992287,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 7,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.029027648270130157,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 8,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 2,
+            "pose_distance": 0.0003983645874541253,
+            "epoch": 3,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 9,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 6,
+            "pose_distance": 0.0014719986356794834,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 10,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 0,
+            "pose_distance": 0.0011407609563320875,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 11,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.0016029209364205599,
+            "epoch": 4,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 12,
+            "virtual_raw_file": "virtual_raw_000.jpg",
+            "virtual_difix_file": "virtual_difix_000.jpg",
+            "reference_file": "virtual_ref_000.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.012861903756856918,
+            "epoch": 5,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 13,
+            "virtual_raw_file": "virtual_raw_001.jpg",
+            "virtual_difix_file": "virtual_difix_001.jpg",
+            "reference_file": "virtual_ref_001.jpg",
+            "reference_ctx_idx": 3,
+            "pose_distance": 0.0196320042014122,
+            "epoch": 5,
+            "group": 1
+          },
+          {
+            "virtual_view_idx": 14,
+            "virtual_raw_file": "virtual_raw_002.jpg",
+            "virtual_difix_file": "virtual_difix_002.jpg",
+            "reference_file": "virtual_ref_002.jpg",
+            "reference_ctx_idx": 0,
+            "pose_distance": 0.01721818372607231,
+            "epoch": 5,
+            "group": 1
+          }
+        ]
+      }
+    }
+  },
+  "average": {
+    "feed_forward": {
+      "psnr": 21.304292678833008,
+      "ssim": 0.6762881411446465,
+      "lpips": 0.22783643338415357
+    },
+    "ttt": {
+      "psnr": 20.858967039320206,
+      "ssim": 0.6690644224484762,
+      "lpips": 0.2545068810383479
+    },
+    "diffi_enhance": {
+      "psnr": 19.670138041178387,
+      "ssim": 0.593360549873776,
+      "lpips": 0.2979513920015759
+    }
+  }
+}

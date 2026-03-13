@@ -9,7 +9,8 @@ import torch
 import wandb
 from omegaconf import OmegaConf
 
-from itr import ITRConfig, itr, load_itr_config
+from methods.itr import ITRConfig, itr, load_itr_config
+from methods.diffi_enhance import DiffiEnhanceConfig, diffi_enhance, load_diffi_enhance_config
 from scripts.nvs_compare import build_dataset_adapter
 from src.evaluation.metrics import compute_lpips, compute_psnr, compute_ssim
 from src.misc.image_io import save_image
@@ -17,7 +18,11 @@ from src.model.encoder.vggt.utils.pose_enc import pose_encoding_to_extri_intri
 from src.model.model.anysplat import AnySplat
 from src.utils.image import process_image
 from src.utils.model_loading import load_model_with_fallback
-from ttt import TTTConfig, load_ttt_config, run_ttt
+from methods.ttt import TTTConfig, load_ttt_config, run_ttt
+
+
+SUPPORTED_METHODS = {"feed_forward", "ttt", "itr", "diffi_enhance"}
+SUPPORTED_TEST_SAMPLING_MODES = {"uniform", "pose_extreme"}
 
 
 def load_local_model(device: torch.device, local_path: str | None = None) -> AnySplat:
@@ -27,13 +32,145 @@ def load_local_model(device: torch.device, local_path: str | None = None) -> Any
     return load_model_with_fallback(local_path=local_path, device=device)
 
 
+def snapshot_model_state_dict(model: AnySplat) -> dict[str, torch.Tensor]:
+    # Keep a CPU copy of baseline weights to restore quickly without reloading from disk.
+    return {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+
+
+def restore_model_from_snapshot(
+    model: AnySplat,
+    snapshot: dict[str, torch.Tensor],
+    device: torch.device,
+) -> None:
+    model.load_state_dict(snapshot, strict=True)
+    model.to(device)
+    model.eval()
+    for p in model.parameters():
+        p.requires_grad = False
+
+
+def _deduplicate_pool_paths(paths: list[Path]) -> list[Path]:
+    deduped: list[Path] = []
+    seen: set[str] = set()
+    for p in paths:
+        key = str(p)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(p)
+    return deduped
+
+
+def _sample_indices_uniform(n_total: int, n_pick: int, seed: int) -> list[int]:
+    if n_pick <= 0:
+        return []
+    if n_pick > n_total:
+        raise ValueError(f"Cannot sample {n_pick} items from only {n_total} candidates")
+    g = torch.Generator(device="cpu")
+    g.manual_seed(seed)
+    perm = torch.randperm(n_total, generator=g).tolist()
+    return sorted(perm[:n_pick])
+
+
+def _compute_pose_order_scores(extrinsic: torch.Tensor) -> torch.Tensor:
+    # Use camera-center trajectory projected on principal axis to define two pose extremes.
+    centers = extrinsic[:, :3, 3].float()
+    centered = centers - centers.mean(dim=0, keepdim=True)
+    if centers.shape[0] < 2 or torch.allclose(centered, torch.zeros_like(centered)):
+        return centers[:, 0]
+    _, _, vh = torch.linalg.svd(centered, full_matrices=False)
+    principal_axis = vh[0]
+    return centered @ principal_axis
+
+
+def resample_scene_views_pose_extreme(
+    model: AnySplat,
+    pool_paths: list[Path],
+    num_context: int,
+    num_test: int,
+    seed: int,
+    device: torch.device,
+) -> tuple[list[Path], list[Path]]:
+    if num_test <= 0:
+        raise ValueError("num_test must be > 0 for pose_extreme sampling")
+    if len(pool_paths) < (num_context + num_test):
+        raise ValueError(
+            f"pool size {len(pool_paths)} is smaller than num_context + num_test = {num_context + num_test}"
+        )
+
+    pool_images = load_eval_images(pool_paths, device=device)
+    with torch.no_grad():
+        _, pred_context_pose = model.inference(pool_images)
+
+    extrinsic = pred_context_pose["extrinsic"][0]
+    if extrinsic.shape[0] != len(pool_paths):
+        raise RuntimeError(
+            f"pose count {extrinsic.shape[0]} does not match pool size {len(pool_paths)}"
+        )
+
+    scores = _compute_pose_order_scores(extrinsic)
+    sorted_idx = torch.argsort(scores).tolist()
+
+    # Half of test views come from both ends of sorted poses; the rest are random from remaining views.
+    extreme_quota = num_test // 2
+    left_quota = extreme_quota // 2
+    right_quota = extreme_quota - left_quota
+
+    left_idx = sorted_idx[:left_quota] if left_quota > 0 else []
+    right_idx = sorted_idx[-right_quota:] if right_quota > 0 else []
+
+    test_idx_set: set[int] = set(left_idx + right_idx)
+    remaining_test_quota = num_test - len(test_idx_set)
+
+    remaining_idx = [i for i in range(len(pool_paths)) if i not in test_idx_set]
+    if remaining_test_quota > len(remaining_idx):
+        raise ValueError(
+            f"Not enough remaining views for random test sampling: need {remaining_test_quota}, have {len(remaining_idx)}"
+        )
+
+    if remaining_test_quota > 0:
+        sampled_local_idx = _sample_indices_uniform(
+            n_total=len(remaining_idx),
+            n_pick=remaining_test_quota,
+            seed=seed + 17,
+        )
+        for li in sampled_local_idx:
+            test_idx_set.add(remaining_idx[li])
+
+    test_indices = sorted(test_idx_set)
+    input_candidates = [i for i in range(len(pool_paths)) if i not in test_idx_set]
+
+    if num_context > len(input_candidates):
+        raise ValueError(
+            f"Not enough views left for context: need {num_context}, have {len(input_candidates)}"
+        )
+
+    chosen_ctx_local = _sample_indices_uniform(
+        n_total=len(input_candidates),
+        n_pick=num_context,
+        seed=seed + 29,
+    )
+    input_indices = sorted(input_candidates[i] for i in chosen_ctx_local)
+
+    input_paths = [pool_paths[i] for i in input_indices]
+    test_paths = [pool_paths[i] for i in test_indices]
+    return input_paths, test_paths
+
+
 def extract_ttt_overrides(cfg) -> dict:
     if cfg is None:
         return {}
     cfg_dict = OmegaConf.to_container(cfg, resolve=True)
     if not isinstance(cfg_dict, dict):
         return {}
-    candidate = cfg_dict.get("ttt") if isinstance(cfg_dict.get("ttt"), dict) else cfg_dict
+    
+    # Try to extract from 'ttt' section first, then from 'experiment' section
+    ttt_section = cfg_dict.get("ttt", {})
+    exp_section = cfg_dict.get("experiment", {})
+    
+    # Merge both sections, with ttt section taking precedence
+    candidate = {**exp_section, **ttt_section}
+    
     valid_keys = {field.name for field in fields(TTTConfig)}
     return {k: v for k, v in candidate.items() if k in valid_keys}
 
@@ -44,8 +181,33 @@ def extract_itr_overrides(cfg) -> dict:
     cfg_dict = OmegaConf.to_container(cfg, resolve=True)
     if not isinstance(cfg_dict, dict):
         return {}
-    candidate = cfg_dict.get("itr") if isinstance(cfg_dict.get("itr"), dict) else cfg_dict
+    
+    # Try to extract from 'itr' section first, then from 'experiment' section
+    itr_section = cfg_dict.get("itr", {})
+    exp_section = cfg_dict.get("experiment", {})
+    
+    # Merge both sections, with itr section taking precedence
+    candidate = {**exp_section, **itr_section}
+    
     valid_keys = {field.name for field in fields(ITRConfig)}
+    return {k: v for k, v in candidate.items() if k in valid_keys}
+
+
+def extract_diffi_overrides(cfg) -> dict:
+    if cfg is None:
+        return {}
+    cfg_dict = OmegaConf.to_container(cfg, resolve=True)
+    if not isinstance(cfg_dict, dict):
+        return {}
+
+    # Try to extract from 'diffi_enhance' section first, then from 'experiment' section
+    diffi_section = cfg_dict.get("diffi_enhance", {})
+    exp_section = cfg_dict.get("experiment", {})
+
+    # Merge both sections, with diffi_enhance section taking precedence
+    candidate = {**exp_section, **diffi_section}
+
+    valid_keys = {field.name for field in fields(DiffiEnhanceConfig)}
     return {k: v for k, v in candidate.items() if k in valid_keys}
 
 
@@ -53,6 +215,22 @@ def load_eval_images(image_paths: list[Path], device: torch.device) -> torch.Ten
     images_raw = [process_image(str(p)) for p in image_paths]
     images = torch.stack(images_raw, dim=0).unsqueeze(0).to(device)
     return (images + 1) * 0.5
+
+
+def prepare_output_root(path_value: str, fallback_relative: str, label: str) -> Path:
+    configured_path = Path(path_value)
+    target_path = configured_path if configured_path.is_absolute() else (Path.cwd() / configured_path)
+    try:
+        target_path.mkdir(parents=True, exist_ok=True)
+        return target_path
+    except PermissionError:
+        fallback_path = (Path.cwd() / fallback_relative)
+        fallback_path.mkdir(parents=True, exist_ok=True)
+        print(
+            f"[warn] Cannot write {label} to '{target_path}' due to permission. "
+            f"Falling back to '{fallback_path}'."
+        )
+        return fallback_path
 
 
 def evaluate_scene_with_method(
@@ -66,10 +244,9 @@ def evaluate_scene_with_method(
     ttt_overrides: dict | None = None,
     itr_input_folder: Path | None = None,
     itr_overrides: dict | None = None,
+    diffi_input_folder: Path | None = None,
+    diffi_overrides: dict | None = None,
 ):
-    b, v_ctx, _, h, w = ctx_images.shape
-    _, v_tgt, _, _, _ = tgt_images.shape
-
     if method_name == "ttt":
         if ttt_input_folder is None:
             raise ValueError("ttt_input_folder is required when method_name='ttt'")
@@ -110,8 +287,40 @@ def evaluate_scene_with_method(
         for p in model.parameters():
             p.requires_grad = False
 
-    if method_name not in {"feed_forward", "ttt", "itr"}:
+    if method_name == "diffi_enhance":
+        if diffi_input_folder is None:
+            raise ValueError("diffi_input_folder is required when method_name='diffi_enhance'")
+        diffi_output_folder = output_folder / "diffi_enhance_outputs"
+        diffi_output_folder.mkdir(parents=True, exist_ok=True)
+        diffi_cfg = load_diffi_enhance_config(Path("config/diffi_enhance.yaml"))
+        if diffi_overrides:
+            diffi_cfg = replace(diffi_cfg, **diffi_overrides)
+        diffi_cfg = replace(
+            diffi_cfg,
+            input_folder=diffi_input_folder,
+            output_folder=diffi_output_folder,
+            device=str(device),
+        )
+        print(f"[{method_name}] Running Diffi Enhance with input folder: {diffi_input_folder}")
+        enhanced_virtual = diffi_enhance(model, diffi_cfg)
+        if enhanced_virtual is not None and enhanced_virtual.shape[1] > 0:
+            # Evaluate with "original context + enhanced virtual views".
+            enhanced_virtual = enhanced_virtual.to(device)
+            ctx_images = torch.cat([ctx_images, enhanced_virtual], dim=1)
+            print(
+                f"[{method_name}] Using augmented context for evaluation: "
+                f"original={ctx_images.shape[1] - enhanced_virtual.shape[1]}, "
+                f"enhanced_virtual={enhanced_virtual.shape[1]}, total={ctx_images.shape[1]}"
+            )
+        model.eval()
+        for p in model.parameters():
+            p.requires_grad = False
+
+    if method_name not in {"feed_forward", "ttt", "itr", "diffi_enhance"}:
         raise ValueError(f"Unknown method: {method_name}")
+
+    b, v_ctx, _, h, w = ctx_images.shape
+    _, v_tgt, _, _, _ = tgt_images.shape
 
     print(f"[{method_name}] Step 1: Reconstructing scene from {v_ctx} context images...")
     encoder_output = model.encoder(ctx_images, global_step=0, visualization_dump={})
@@ -272,23 +481,53 @@ def main():
     try:
         nvs_cfg = OmegaConf.load("config/nvs_compare.yaml")
     except Exception:
+        print("Error loading nvs_compare.yaml")
         nvs_cfg = OmegaConf.create({})
 
     exp_cfg = nvs_cfg.get("experiment", {})
-    dataset_name = str(exp_cfg.get("dataset", "vr-nerf"))
+    dataset_name = str(exp_cfg.get("dataset"))
     num_context = int(exp_cfg.get("num_context", 32))
+    configured_methods = exp_cfg.get("methods", ["feed_forward", "ttt", "diffi_enhance"])
+    if configured_methods is None:
+        configured_methods = ["feed_forward", "ttt", "diffi_enhance"]
+    methods = [str(m) for m in configured_methods]
+    if not methods:
+        raise ValueError("experiment.methods cannot be empty")
+    invalid_methods = [m for m in methods if m not in SUPPORTED_METHODS]
+    if invalid_methods:
+        raise ValueError(
+            f"Unsupported methods in experiment.methods: {invalid_methods}. "
+            f"Supported methods: {sorted(SUPPORTED_METHODS)}"
+        )
 
     pretrained_model_path = exp_cfg.get("pretrained_model_path", "pretrained_model")
     if not isinstance(pretrained_model_path, str):
         pretrained_model_path = "pretrained_model"
 
-    output_metrics_root_dir = Path(str(exp_cfg.get("output_metrics_dir", "outputs/nvs_compare")))
-    output_image_root_dir = Path(str(exp_cfg.get("output_image_root_dir", "exp-results")))
+    output_metrics_root_dir = prepare_output_root(
+        str(exp_cfg.get("output_metrics_dir", "outputs/nvs_compare")),
+        "outputs/nvs_compare",
+        "metrics output",
+    )
+    output_image_root_dir = prepare_output_root(
+        str(exp_cfg.get("output_image_root_dir", "exp-results")),
+        "exp-results",
+        "image output",
+    )
 
-    dense_sparse_cfg = nvs_cfg.get("dense_sparse", {})
-    dense_sparse_cfg = OmegaConf.to_container(dense_sparse_cfg, resolve=True) if dense_sparse_cfg else {}
-    if not isinstance(dense_sparse_cfg, dict):
-        dense_sparse_cfg = {}
+    # Build dense_sparse_cfg from experiment section (parameters moved from dense_sparse)
+    dense_sparse_cfg = {
+        "pool_size": int(exp_cfg.get("pool_size", 72)),
+        "pool_stride": int(exp_cfg.get("pool_stride", 2)),
+        "num_test": int(exp_cfg.get("num_test", 8)),
+        "seed": int(exp_cfg.get("seed", 0)),
+    }
+    test_sampling_mode = str(exp_cfg.get("test_sampling_mode", "uniform")).strip().lower()
+    if test_sampling_mode not in SUPPORTED_TEST_SAMPLING_MODES:
+        raise ValueError(
+            f"Unsupported experiment.test_sampling_mode='{test_sampling_mode}'. "
+            f"Supported modes: {sorted(SUPPORTED_TEST_SAMPLING_MODES)}"
+        )
 
     adapter = build_dataset_adapter(nvs_cfg)
 
@@ -315,8 +554,21 @@ def main():
         device=device,
     )
 
+    print(f"[nvs_compare] Enabled methods: {methods}")
+    print(f"[nvs_compare] Test sampling mode: {test_sampling_mode}")
+
+    exp_cfg_dict = OmegaConf.to_container(exp_cfg, resolve=True) if exp_cfg else {}
+    if not isinstance(exp_cfg_dict, dict):
+        exp_cfg_dict = {}
+
     ttt_overrides = extract_ttt_overrides(nvs_cfg)
     itr_overrides = extract_itr_overrides(nvs_cfg)
+    diffi_overrides = extract_diffi_overrides(nvs_cfg)
+
+    print("[nvs_compare] Loading AnySplat model once...")
+    shared_model = load_local_model(device, local_path=pretrained_model_path)
+    base_model_snapshot = snapshot_model_state_dict(shared_model)
+    print("[nvs_compare] AnySplat model loaded and baseline snapshot cached in memory.")
 
     all_results: dict[str, dict] = {}
 
@@ -324,6 +576,27 @@ def main():
         scene = batch.name
         input_paths = batch.sample.input_paths
         test_paths = batch.sample.test_paths
+
+        if test_sampling_mode == "pose_extreme":
+            restore_model_from_snapshot(shared_model, base_model_snapshot, device)
+            pool_paths = _deduplicate_pool_paths(list(input_paths) + list(test_paths))
+            if len(pool_paths) < (num_context + dense_sparse_cfg["num_test"]):
+                raise RuntimeError(
+                    f"Scene '{scene}' has insufficient pooled views ({len(pool_paths)}) for "
+                    f"num_context={num_context}, num_test={dense_sparse_cfg['num_test']}"
+                )
+            input_paths, test_paths = resample_scene_views_pose_extreme(
+                model=shared_model,
+                pool_paths=pool_paths,
+                num_context=num_context,
+                num_test=dense_sparse_cfg["num_test"],
+                seed=dense_sparse_cfg["seed"] + scene_idx,
+                device=device,
+            )
+            print(
+                f"[nvs_compare] pose_extreme resample -> pool={len(pool_paths)}, "
+                f"input={len(input_paths)}, test={len(test_paths)}"
+            )
 
         print(f"\n{'=' * 60}")
         print(f"Processing scene: {scene}")
@@ -341,64 +614,60 @@ def main():
 
         scene_results = {}
 
-        ff_output_folder = image_run_root / scene / "output_ff"
-        ff_output_folder.mkdir(parents=True, exist_ok=True)
-        ff_results = evaluate_scene_with_method(
-            model=load_local_model(device, local_path=pretrained_model_path),
-            ctx_images=ctx_images,
-            tgt_images=tgt_images,
-            method_name="feed_forward",
-            output_folder=ff_output_folder,
-            device=device,
-        )
-        scene_results["feed_forward"] = ff_results
+        for method_name in methods:
+            method_output_folder = image_run_root / scene / f"output_{method_name}"
+            method_output_folder.mkdir(parents=True, exist_ok=True)
 
-        ttt_output_folder = image_run_root / scene / "output_ttt"
-        ttt_output_folder.mkdir(parents=True, exist_ok=True)
-        ttt_results = evaluate_scene_with_method(
-            model=load_local_model(device, local_path=pretrained_model_path),
-            ctx_images=ctx_images,
-            tgt_images=tgt_images,
-            method_name="ttt",
-            output_folder=ttt_output_folder,
-            device=device,
-            ttt_input_folder=input_images_dir,
-            ttt_overrides=ttt_overrides,
-        )
-        scene_results["ttt"] = ttt_results
+            # Ensure each method/scene starts from the same baseline weights.
+            restore_model_from_snapshot(shared_model, base_model_snapshot, device)
 
-        itr_output_folder = image_run_root / scene / "output_itr"
-        itr_output_folder.mkdir(parents=True, exist_ok=True)
-        itr_results = evaluate_scene_with_method(
-            model=load_local_model(device, local_path=pretrained_model_path),
-            ctx_images=ctx_images,
-            tgt_images=tgt_images,
-            method_name="itr",
-            output_folder=itr_output_folder,
-            device=device,
-            itr_input_folder=input_images_dir,
-            itr_overrides=itr_overrides,
-        )
-        scene_results["itr"] = itr_results
+            method_kwargs = {
+                "model": shared_model,
+                "ctx_images": ctx_images,
+                "tgt_images": tgt_images,
+                "method_name": method_name,
+                "output_folder": method_output_folder,
+                "device": device,
+            }
+
+            if method_name == "ttt":
+                method_kwargs["ttt_input_folder"] = input_images_dir
+                method_kwargs["ttt_overrides"] = ttt_overrides
+            elif method_name == "itr":
+                method_kwargs["itr_input_folder"] = input_images_dir
+                method_kwargs["itr_overrides"] = itr_overrides
+            elif method_name == "diffi_enhance":
+                method_kwargs["diffi_input_folder"] = input_images_dir
+                method_kwargs["diffi_overrides"] = diffi_overrides
+
+            method_results = evaluate_scene_with_method(**method_kwargs)
+
+            if method_name == "diffi_enhance":
+                # Load virtual view -> reference view mapping if available
+                diffi_enhance_outputs = method_output_folder / "diffi_enhance_outputs"
+                if diffi_enhance_outputs.exists():
+                    mapping_file = diffi_enhance_outputs / "virtual_ref_mapping.json"
+                    if mapping_file.exists():
+                        with mapping_file.open("r") as f:
+                            virtual_ref_mapping = json.load(f)
+                        print(
+                            f"[nvs_compare] Loaded {len(virtual_ref_mapping)} "
+                            f"virtual-reference view mappings for {scene}"
+                        )
+                        method_results["virtual_ref_mapping"] = virtual_ref_mapping
+
+            scene_results[method_name] = method_results
 
         all_results[scene] = scene_results
 
         if run is not None:
-            wandb.log(
-                {
-                    "scene_idx": scene_idx,
-                    "metrics/feed_forward/psnr": ff_results["psnr"],
-                    "metrics/feed_forward/ssim": ff_results["ssim"],
-                    "metrics/feed_forward/lpips": ff_results["lpips"],
-                    "metrics/ttt/psnr": ttt_results["psnr"],
-                    "metrics/ttt/ssim": ttt_results["ssim"],
-                    "metrics/ttt/lpips": ttt_results["lpips"],
-                    "metrics/itr/psnr": itr_results["psnr"],
-                    "metrics/itr/ssim": itr_results["ssim"],
-                    "metrics/itr/lpips": itr_results["lpips"],
-                },
-                step=scene_idx,
-            )
+            wandb_payload = {"scene_idx": scene_idx}
+            for method_name in methods:
+                method_metrics = scene_results[method_name]
+                wandb_payload[f"metrics/{method_name}/psnr"] = method_metrics["psnr"]
+                wandb_payload[f"metrics/{method_name}/ssim"] = method_metrics["ssim"]
+                wandb_payload[f"metrics/{method_name}/lpips"] = method_metrics["lpips"]
+            wandb.log(wandb_payload, step=scene_idx)
 
     print(f"\n{'=' * 60}")
     print("Summary across all scenes:")
@@ -409,32 +678,41 @@ def main():
         for method, metrics in results.items():
             print(f"{scene:<20} {method:<15} {metrics['psnr']:<8.2f} {metrics['ssim']:<8.3f} {metrics['lpips']:<8.3f}")
 
-    ff_psnr = [r["feed_forward"]["psnr"] for r in all_results.values()]
-    ff_ssim = [r["feed_forward"]["ssim"] for r in all_results.values()]
-    ff_lpips = [r["feed_forward"]["lpips"] for r in all_results.values()]
-    ttt_psnr = [r["ttt"]["psnr"] for r in all_results.values()]
-    ttt_ssim = [r["ttt"]["ssim"] for r in all_results.values()]
-    ttt_lpips = [r["ttt"]["lpips"] for r in all_results.values()]
-    itr_psnr = [r["itr"]["psnr"] for r in all_results.values()]
-    itr_ssim = [r["itr"]["ssim"] for r in all_results.values()]
-    itr_lpips = [r["itr"]["lpips"] for r in all_results.values()]
+    avg_metrics = {}
+    for method_name in methods:
+        psnr_values = [r[method_name]["psnr"] for r in all_results.values()]
+        ssim_values = [r[method_name]["ssim"] for r in all_results.values()]
+        lpips_values = [r[method_name]["lpips"] for r in all_results.values()]
+        avg_metrics[method_name] = {
+            "psnr": sum(psnr_values) / len(psnr_values),
+            "ssim": sum(ssim_values) / len(ssim_values),
+            "lpips": sum(lpips_values) / len(lpips_values),
+        }
 
-    avg_ff_psnr = sum(ff_psnr) / len(ff_psnr)
-    avg_ff_ssim = sum(ff_ssim) / len(ff_ssim)
-    avg_ff_lpips = sum(ff_lpips) / len(ff_lpips)
-    avg_ttt_psnr = sum(ttt_psnr) / len(ttt_psnr)
-    avg_ttt_ssim = sum(ttt_ssim) / len(ttt_ssim)
-    avg_ttt_lpips = sum(ttt_lpips) / len(ttt_lpips)
-    avg_itr_psnr = sum(itr_psnr) / len(itr_psnr)
-    avg_itr_ssim = sum(itr_ssim) / len(itr_ssim)
-    avg_itr_lpips = sum(itr_lpips) / len(itr_lpips)
-
-    print(f"\nAverage Feed Forward:  PSNR={avg_ff_psnr:.2f}, SSIM={avg_ff_ssim:.3f}, LPIPS={avg_ff_lpips:.3f}")
-    print(f"Average TTT:          PSNR={avg_ttt_psnr:.2f}, SSIM={avg_ttt_ssim:.3f}, LPIPS={avg_ttt_lpips:.3f}")
-    print(f"Average ITR:          PSNR={avg_itr_psnr:.2f}, SSIM={avg_itr_ssim:.3f}, LPIPS={avg_itr_lpips:.3f}")
+    print("\nAverage metrics:")
+    for method_name in methods:
+        m = avg_metrics[method_name]
+        print(f"  {method_name:<15} PSNR={m['psnr']:.2f}, SSIM={m['ssim']:.3f}, LPIPS={m['lpips']:.3f}")
 
     metrics_output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Load nvs_compare experiment configuration
+    nvs_experiment_cfg = {}
+    if nvs_cfg is not None and nvs_cfg.get("experiment") is not None:
+        nvs_experiment_cfg = OmegaConf.to_container(nvs_cfg.get("experiment"), resolve=True)
+        if not isinstance(nvs_experiment_cfg, dict):
+            nvs_experiment_cfg = {}
+    
+    # Load dataset-specific configuration
+    dataset_cfg = {}
+    if nvs_cfg is not None and dataset_name:
+        dataset_section = nvs_cfg.get(dataset_name)
+        if dataset_section is not None:
+            dataset_cfg = OmegaConf.to_container(dataset_section, resolve=True)
+            if not isinstance(dataset_cfg, dict):
+                dataset_cfg = {}
+    
+    # Load ttt.yaml
     try:
         ttt_base_cfg = OmegaConf.load("config/ttt.yaml")
         ttt_cfg_dict = OmegaConf.to_container(ttt_base_cfg, resolve=True)
@@ -443,6 +721,7 @@ def main():
     except Exception as e:
         ttt_cfg_dict = {"error": f"Failed to load ttt.yaml: {e}"}
 
+    # Load itr.yaml
     try:
         itr_base_cfg = OmegaConf.load("config/itr.yaml")
         itr_cfg_dict = OmegaConf.to_container(itr_base_cfg, resolve=True)
@@ -451,22 +730,27 @@ def main():
     except Exception as e:
         itr_cfg_dict = {"error": f"Failed to load itr.yaml: {e}"}
 
+    # Load diffi_enhance.yaml
+    try:
+        diffi_base_cfg = OmegaConf.load("config/diffi_enhance.yaml")
+        diffi_cfg_dict = OmegaConf.to_container(diffi_base_cfg, resolve=True)
+        if diffi_overrides:
+            diffi_cfg_dict.update(diffi_overrides)
+    except Exception as e:
+        diffi_cfg_dict = {"error": f"Failed to load diffi_enhance.yaml: {e}"}
+
     config_section = {
-        "experiment": {
-            "num_context": num_context,
-            "metrics_root_dir": str(output_metrics_root_dir),
-            "metrics_run_dir": str(metrics_output_dir),
-            "image_root_dir": str(output_image_root_dir),
-            **adapter.get_metrics_experiment_fields(),
-        },
+        "experiment": nvs_experiment_cfg,
+        f"dataset_config_{dataset_name}": dataset_cfg,
         "dense_sparse": {
             "pool_size": int(dense_sparse_cfg.get("pool_size", 72)),
             "pool_stride": int(dense_sparse_cfg.get("pool_stride", 2)),
             "seed": int(dense_sparse_cfg.get("seed", 0)),
             **({"images_subdir": dense_sparse_cfg.get("images_subdir")} if "images_subdir" in dense_sparse_cfg else {}),
         },
-        "ttt": ttt_cfg_dict,
-        "itr": itr_cfg_dict,
+        "ttt_config": ttt_cfg_dict,
+        "itr_config": itr_cfg_dict,
+        "diffi_enhance_config": diffi_cfg_dict,
         "wandb": {
             "mode": wandb_mode,
             "project": wandb_project,
@@ -478,11 +762,7 @@ def main():
     metrics_payload = {
         "config": config_section,
         "per_scene": all_results,
-        "average": {
-            "feed_forward": {"psnr": avg_ff_psnr, "ssim": avg_ff_ssim, "lpips": avg_ff_lpips},
-            "ttt": {"psnr": avg_ttt_psnr, "ssim": avg_ttt_ssim, "lpips": avg_ttt_lpips},
-            "itr": {"psnr": avg_itr_psnr, "ssim": avg_itr_ssim, "lpips": avg_itr_lpips},
-        },
+        "average": avg_metrics,
     }
 
     json_path = metrics_output_dir / f"metrics_{timestamp}.json"
@@ -492,13 +772,43 @@ def main():
         json.dump(metrics_payload, f, indent=2, ensure_ascii=False)
 
     with txt_path.open("w", encoding="utf-8") as f:
-        f.write("Config:\n")
+        f.write("=" * 80 + "\n")
+        f.write("Configuration Summary\n")
+        f.write("=" * 80 + "\n\n")
+        
+        f.write("Experiment Config (nvs_compare.yaml::experiment):\n")
+        f.write("-" * 80 + "\n")
         for key, value in config_section["experiment"].items():
-            f.write(f"  {key:<16}: {value}\n")
-        f.write("  dense_sparse:\n")
+            f.write(f"  {key:<24}: {value}\n")
+        
+        f.write(f"\nDataset-Specific Config ({dataset_name}):\n")
+        f.write("-" * 80 + "\n")
+        for key, value in config_section.get(f"dataset_config_{dataset_name}", {}).items():
+            f.write(f"  {key:<24}: {value}\n")
+        
+        f.write("\nDense-Sparse Sampling:\n")
+        f.write("-" * 80 + "\n")
         for key, value in config_section["dense_sparse"].items():
-            f.write(f"    {key:<14}: {value}\n")
+            f.write(f"  {key:<24}: {value}\n")
+        
+        f.write("\nTTT Config (config/ttt.yaml):\n")
+        f.write("-" * 80 + "\n")
+        for key, value in config_section.get("ttt_config", {}).items():
+            f.write(f"  {key:<24}: {value}\n")
+        
+        f.write("\nITR Config (config/itr.yaml):\n")
+        f.write("-" * 80 + "\n")
+        for key, value in config_section.get("itr_config", {}).items():
+            f.write(f"  {key:<24}: {value}\n")
+
+        f.write("\nDiffi Enhance Config (config/diffi_enhance.yaml):\n")
+        f.write("-" * 80 + "\n")
+        for key, value in config_section.get("diffi_enhance_config", {}).items():
+            f.write(f"  {key:<24}: {value}\n")
+        
+        f.write("\n" + "=" * 80 + "\n")
         f.write("\nPer-scene metrics:\n")
+        f.write("=" * 80 + "\n")
         for scene, results in all_results.items():
             for method, m in results.items():
                 f.write(
@@ -506,9 +816,12 @@ def main():
                     f"PSNR={m['psnr']:.2f} SSIM={m['ssim']:.3f} LPIPS={m['lpips']:.3f}\n"
                 )
         f.write("\nAverages:\n")
-        f.write(f"Feed Forward:  PSNR={avg_ff_psnr:.2f}, SSIM={avg_ff_ssim:.3f}, LPIPS={avg_ff_lpips:.3f}\n")
-        f.write(f"TTT:          PSNR={avg_ttt_psnr:.2f}, SSIM={avg_ttt_ssim:.3f}, LPIPS={avg_ttt_lpips:.3f}\n")
-        f.write(f"ITR:          PSNR={avg_itr_psnr:.2f}, SSIM={avg_itr_ssim:.3f}, LPIPS={avg_itr_lpips:.3f}\n")
+        for method_name in methods:
+            m = avg_metrics[method_name]
+            f.write(
+                f"{method_name:15s} "
+                f"PSNR={m['psnr']:.2f}, SSIM={m['ssim']:.3f}, LPIPS={m['lpips']:.3f}\n"
+            )
 
     if run is not None:
         rows = []
@@ -522,15 +835,18 @@ def main():
                 "psnr_vs_scene": wandb.plot.line(table, "scene", "psnr", title="PSNR vs Scene", stroke="method"),
                 "ssim_vs_scene": wandb.plot.line(table, "scene", "ssim", title="SSIM vs Scene", stroke="method"),
                 "lpips_vs_scene": wandb.plot.line(table, "scene", "lpips", title="LPIPS vs Scene", stroke="method"),
-                "summary/feed_forward/psnr": avg_ff_psnr,
-                "summary/feed_forward/ssim": avg_ff_ssim,
-                "summary/feed_forward/lpips": avg_ff_lpips,
-                "summary/ttt/psnr": avg_ttt_psnr,
-                "summary/ttt/ssim": avg_ttt_ssim,
-                "summary/ttt/lpips": avg_ttt_lpips,
-                "summary/itr/psnr": avg_itr_psnr,
-                "summary/itr/ssim": avg_itr_ssim,
-                "summary/itr/lpips": avg_itr_lpips,
+                **{
+                    f"summary/{method_name}/psnr": avg_metrics[method_name]["psnr"]
+                    for method_name in methods
+                },
+                **{
+                    f"summary/{method_name}/ssim": avg_metrics[method_name]["ssim"]
+                    for method_name in methods
+                },
+                **{
+                    f"summary/{method_name}/lpips": avg_metrics[method_name]["lpips"]
+                    for method_name in methods
+                },
             }
         )
         wandb.finish()

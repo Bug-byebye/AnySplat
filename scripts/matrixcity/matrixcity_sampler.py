@@ -134,8 +134,8 @@ def get_dense_sparse_splits_with_paths(
     scene: str,
     scene_dir: Path,
     camera_id: Optional[str] = None,
-    setting: str = "dense",
     num_input: int = 64,
+    num_test: int = 8,
     pool_size: int = 200,
     pool_stride: int = 2,
     seed: int = 0,
@@ -144,15 +144,12 @@ def get_dense_sparse_splits_with_paths(
     """
     Sample input and test views for MatrixCity scene.
     
-    This is a simplified implementation that will be refined once
-    actual data structure is available.
-    
     Args:
         scene: Scene name
         scene_dir: Path to scene directory
         camera_id: Optional camera block identifier (may not apply to MatrixCity)
-        setting: "dense" or "sparse" (affects sampling strategy)
         num_input: Number of input/context views
+        num_test: Number of test views
         pool_size: Size of candidate pool for sampling
         pool_stride: Stride for building candidate pool
         seed: Random seed
@@ -188,34 +185,48 @@ def get_dense_sparse_splits_with_paths(
         if len(candidate_files) >= pool_size:
             break
     
-    if len(candidate_files) < num_input + 10:  # Need at least some test views
+    if len(candidate_files) < num_input + num_test:
         raise ValueError(
-            f"Not enough images in pool: {len(candidate_files)} < {num_input + 10}"
+            f"Not enough images in pool: {len(candidate_files)} < {num_input + num_test}"
         )
     
-    # Simple sampling strategy: use numpy for reproducibility
-    rng = np.random.default_rng(seed)
-    indices = rng.permutation(len(candidate_files))
+    # 1. Uniformly select test views from pool
+    n_pool = len(candidate_files)
+    step = n_pool / num_test
+    test_positions = [int(i * step + step / 2) for i in range(num_test)]
+    test_positions = [min(pos, n_pool - 1) for pos in test_positions]
+    test_positions = sorted(set(test_positions))[:num_test]
     
-    # Split into input and test
-    input_indices = sorted(indices[:num_input])
-    test_indices = sorted(indices[num_input:])
+    # 2. Remaining candidates for input
+    test_set = set(test_positions)
+    input_candidate_indices = [i for i in range(n_pool) if i not in test_set]
+    
+    # 3. Sample input views from candidates
+    if num_input >= len(input_candidate_indices):
+        input_indices = input_candidate_indices
+    else:
+        rng = np.random.default_rng(seed)
+        sample_positions = rng.choice(len(input_candidate_indices), size=num_input, replace=False)
+        sample_positions = np.sort(sample_positions)
+        input_indices = [input_candidate_indices[pos] for pos in sample_positions]
     
     # Get file paths
     input_paths = [candidate_files[i] for i in input_indices]
-    test_paths = [candidate_files[i] for i in test_indices]
+    test_paths = [candidate_files[i] for i in test_positions]
     
     # Get frame IDs (stem without extension)
     input_ids = [p.stem for p in input_paths]
     test_ids = [p.stem for p in test_paths]
+    
+    print(f"[sampler] test_length: {len(test_ids)}, input_candidate_length: {len(input_candidate_indices)}")
     
     return [{
         "input": input_ids,
         "test": test_ids,
         "input_paths": input_paths,
         "test_paths": test_paths,
-        "setting": setting,
-        "num_input": num_input,
+        "num_input": len(input_ids),
+        "num_test": len(test_ids),
         "seed": seed,
     }]
 

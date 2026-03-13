@@ -335,7 +335,14 @@ def get_processed_image_path(
         filename = parts[-1]
         
         # Reconstruct: scene_dir / images_subdir / camera_id / processed_subdir / filename
-        scene_dir = Path(*parts[:idx])
+        # Handle both absolute and relative paths
+        if parts[0] == '/':
+            # Absolute path: parts = ('/', 'data', ..., 'scene', 'images-jpeg-1k', 'camera_id', 'image.jpg')
+            scene_dir = Path('/').joinpath(*parts[1:idx])
+        else:
+            # Relative path
+            scene_dir = Path(*parts[:idx]) if idx > 0 else Path('.')
+        
         processed_path = scene_dir / images_subdir / camera_id / processed_subdir / filename
         
         if processed_path.exists():

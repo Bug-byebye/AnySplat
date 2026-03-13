@@ -21,7 +21,7 @@ from src.misc.image_io import save_rendered_video_no_interpolation, save_interpo
 from src.model.model.anysplat import AnySplat
 from src.model.ply_export import export_ply
 from src.utils.image import process_image
-from self_supervise import (
+from methods.self_supervise import (
     load_config as ss_load_config,
     load_images as ss_load_images,
     pose_interpolation,
@@ -94,7 +94,7 @@ def get_reconstructed_scene(outdir, model, device):
 
         os.makedirs(selected_folder, exist_ok=True)
         # 复用 self_supervise 中的保存逻辑：这里简单保存为 PNG 序列
-        from self_supervise import save_images as ss_save_images
+        from methods.self_supervise import save_images as ss_save_images
 
         ss_save_images(selected_images, Path(selected_folder))
         print(

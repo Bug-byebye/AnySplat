@@ -1,0 +1,130 @@
+================================================================================
+Configuration Summary
+================================================================================
+
+Experiment Config (nvs_compare.yaml::experiment):
+--------------------------------------------------------------------------------
+  dataset                 : vr-nerf
+  pretrained_model_path   : pretrained_model
+  pool_size               : 36
+  pool_stride             : 2
+  num_context             : 24
+  num_test                : 8
+  num_train               : 16
+  train_distribution      : uniform
+  output_metrics_dir      : compare-results/metrics-record
+  output_image_root_dir   : compare-results
+  seed                    : 123
+
+Dataset-Specific Config (vr-nerf):
+--------------------------------------------------------------------------------
+  dataset_root            : /data/sunchang/datasets-raw/vrnerf
+  scenes                  : /data/sunchang/datasets-raw/vrnerf/scenes_used.json
+  camera_id               : 18
+  fisheye_camera_id       : 4
+  images_subdir           : images-jpeg-1k
+
+Dense-Sparse Sampling:
+--------------------------------------------------------------------------------
+  pool_size               : 36
+  pool_stride             : 2
+  seed                    : 123
+
+TTT Config (config/ttt.yaml):
+--------------------------------------------------------------------------------
+  pretrained_model_path   : pretrained_model
+  input_folder            : exp-results/ss-exp/vrnerf_20260205_062447/kitchen/input_images
+  output_folder           : exp-results/ttt-exp
+  iters                   : 3
+  image_sorted            : False
+  group_size              : 10
+  group_mode              : sliding
+  group_stride            : 4
+  seed                    : 123
+  train_components        : ['encoder.gaussian_param_head']
+  device                  : cuda
+  export_ply              : True
+  lr                      : 0.0001
+  loss_type               : l1_mse_lpips
+  l1_weight               : 1.0
+  mse_weight              : 1.0
+  lpips_weight            : 0.05
+  context_loss_weight     : 1.5
+  num_train               : 16
+  train_distribution      : uniform
+
+ITR Config (config/itr.yaml):
+--------------------------------------------------------------------------------
+  pretrained_model_path   : pretrained_model
+  input_folder            : exp-results/ss-exp/vrnerf_20260205_062447/kitchen/input_images
+  output_folder           : exp-results/itr-exp
+  iters                   : 5
+  image_sorted            : True
+  group_size              : 8
+  interp_frames           : 2
+  seed                    : 123
+  train_components        : ['encoder.camera_head']
+  device                  : cuda
+  export_ply              : True
+  lr                      : 0.0002
+  loss_type               : l1_mse_lpips
+  l1_weight               : 1.0
+  mse_weight              : 1.0
+  lpips_weight            : 0.05
+  context_gt_weight       : 1.0
+  context_consistency_weight: 0.1
+  target_consistency_weight: 0.05
+  num_train               : 16
+  train_distribution      : uniform
+
+Diffi Enhance Config (config/diffi_enhance.yaml):
+--------------------------------------------------------------------------------
+  pretrained_model_path   : pretrained_model
+  input_folder            : exp-results/ss-exp/vrnerf_20260205_062447/kitchen/input_images
+  output_folder           : exp-results/diffi-enhance-exp
+  iters                   : 5
+  image_sorted            : True
+  group_size              : 8
+  group_mode              : sequential
+  group_stride            : None
+  interp_frames           : 3
+  seed                    : 123
+  num_train               : 16
+  train_distribution      : uniform
+  device                  : cuda
+  export_ply              : True
+  difix_prompt            : remove degradation
+  difix_num_inference_steps: 1
+  difix_timesteps         : [199]
+  difix_guidance_scale    : 0.0
+
+================================================================================
+
+Per-scene metrics:
+================================================================================
+apartment            feed_forward    PSNR=16.41 SSIM=0.598 LPIPS=0.445
+apartment            ttt             PSNR=12.68 SSIM=0.547 LPIPS=0.688
+apartment            diffi_enhance   PSNR=16.28 SSIM=0.580 LPIPS=0.478
+kitchen              feed_forward    PSNR=18.11 SSIM=0.661 LPIPS=0.424
+kitchen              ttt             PSNR=20.06 SSIM=0.703 LPIPS=0.454
+kitchen              diffi_enhance   PSNR=17.50 SSIM=0.647 LPIPS=0.451
+office_view1         feed_forward    PSNR=26.40 SSIM=0.857 LPIPS=0.312
+office_view1         ttt             PSNR=25.34 SSIM=0.845 LPIPS=0.393
+office_view1         diffi_enhance   PSNR=25.67 SSIM=0.853 LPIPS=0.340
+office1a             feed_forward    PSNR=15.80 SSIM=0.701 LPIPS=0.510
+office1a             ttt             PSNR=17.42 SSIM=0.794 LPIPS=0.547
+office1a             diffi_enhance   PSNR=15.62 SSIM=0.697 LPIPS=0.524
+seating_area         feed_forward    PSNR=21.92 SSIM=0.765 LPIPS=0.359
+seating_area         ttt             PSNR=22.09 SSIM=0.782 LPIPS=0.384
+seating_area         diffi_enhance   PSNR=21.56 SSIM=0.758 LPIPS=0.381
+table                feed_forward    PSNR=17.90 SSIM=0.678 LPIPS=0.404
+table                ttt             PSNR=18.95 SSIM=0.717 LPIPS=0.434
+table                diffi_enhance   PSNR=17.88 SSIM=0.685 LPIPS=0.421
+workshop             feed_forward    PSNR=16.22 SSIM=0.527 LPIPS=0.471
+workshop             ttt             PSNR=16.82 SSIM=0.569 LPIPS=0.517
+workshop             diffi_enhance   PSNR=17.22 SSIM=0.544 LPIPS=0.471
+
+Averages:
+Feed Forward:  PSNR=18.96, SSIM=0.684, LPIPS=0.418
+TTT:          PSNR=19.05, SSIM=0.708, LPIPS=0.488
+DiffiEnhance: PSNR=18.82, SSIM=0.681, LPIPS=0.438
