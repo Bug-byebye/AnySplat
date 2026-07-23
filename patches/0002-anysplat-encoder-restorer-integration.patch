@@ -1,0 +1,119 @@
+From: Gaussian Scene Restoration Project
+Date: 2026-07-05
+Subject: [PATCH 2/4] anysplat encoder: Integrate GaussianSceneRestorer
+
+This patch adds:
+1. Import of GaussianSceneRestorer and GaussianSceneRestorerCfg
+2. A `gaussian_scene_restorer` field in EncoderAnySplatCfg (using dataclass field
+   with default_factory for mutable default)
+3. Conditional initialization in EncoderAnySplat.__init__() — when enabled, creates
+   the restorer and optionally freezes all other encoder parameters
+4. Conditional forward logic — when restorer is active, calls gaussian_param_head
+   with return_intermediate=True, applies refinement, and splices refined params
+   back into the output tensor
+
+The module is fully backward-compatible: when disabled (default), no behavior
+change occurs.
+
+---
+ src/model/encoder/anysplat.py | 44 +++++++++++++++++++++++++++++++----
+ 1 file changed, 40 insertions(+), 4 deletions(-)
+
+diff --git a/src/model/encoder/anysplat.py b/src/model/encoder/anysplat.py
+index 14995bfd..0f59772c 100644
+--- a/src/model/encoder/anysplat.py
++++ b/src/model/encoder/anysplat.py
+@@ -4,7 +4,7 @@ import copy
+ import os
+ import sys
+ from copy import deepcopy
+-from dataclasses import dataclass
++from dataclasses import dataclass, field
+ from typing import List, Literal, Optional
+
+ import torch
+@@ -40,6 +40,7 @@ from .common.gaussian_adapter import (
+ )
+ from .encoder import Encoder, EncoderOutput
+ from .heads import head_factory
++from src.model.restorer import GaussianSceneRestorer, GaussianSceneRestorerCfg
+ from .visualization.encoder_visualizer_epipolar_cfg import EncoderVisualizerEpipolarCfg
+
+ root_path = os.path.abspath(".")
+@@ -114,6 +115,10 @@ class EncoderAnySplatCfg:
+     conf_threshold: float = 0.1
+     intermediate_layer_idx: Optional[List[int]] = None
+     voxelize: bool = False
++    # Gaussian Scene Restoration module (optional, default disabled)
++    gaussian_scene_restorer: GaussianSceneRestorerCfg = field(
++        default_factory=lambda: GaussianSceneRestorerCfg(enabled=False)
++    )
+
+
+ def rearrange_head(feat, patch_size, H, W):
+@@ -213,6 +218,17 @@ class EncoderAnySplat(Encoder[EncoderAnySplatCfg]):
+             features=head_params.feature_dim,
+         )
+
++        # Gaussian Scene Restoration module (optional)
++        self.gaussian_scene_restorer = None
++        if cfg.gaussian_scene_restorer.enabled:
++            self.gaussian_scene_restorer = GaussianSceneRestorer(cfg.gaussian_scene_restorer)
++            if cfg.gaussian_scene_restorer.freeze_encoder:
++                # Freeze ALL encoder params except the restorer itself
++                for p in self.parameters():
++                    p.requires_grad = False
++                for p in self.gaussian_scene_restorer.parameters():
++                    p.requires_grad = True
++
+     def map_pdf_to_opacity(
+         self,
+         pdf: Float[Tensor, " *batch"],
+@@ -441,13 +457,38 @@ class EncoderAnySplat(Encoder[EncoderAnySplatCfg]):
+                 conf_valid_mask = torch.ones_like(depth_conf, dtype=torch.bool)
+
+         # dpt style gs_head input format
+-        out = self.gaussian_param_head(
+-            aggregated_tokens_list,
+-            pts_all.flatten(0, 1).permute(0, 3, 1, 2),
+-            image,
+-            patch_start_idx=patch_start_idx,
+-            image_size=(h, w),
+-        )
++        if self.gaussian_scene_restorer is not None:
++            # Get raw GS params + intermediate DPT features for restoration
++            out, dpt_fused_feats = self.gaussian_param_head(
++                aggregated_tokens_list,
++                pts_all.flatten(0, 1).permute(0, 3, 1, 2),
++                image,
++                patch_start_idx=patch_start_idx,
++                image_size=(h, w),
++                return_intermediate=True,
++            )
++            # dpt_fused_feats: [B*V, 128, H, W]
++            # out:            [B, V, raw_gs_dim+1, H, W]
++
++            # Apply pixel-wise restoration on raw GS parameters
++            # Flatten batch and views: [B*V, raw_gs_dim, H, W]
++            raw_params = out[:, :, :self.raw_gs_dim].flatten(0, 1)  # [B*V, 83, H, W]
++            refined_params = self.gaussian_scene_restorer(
++                dpt_feats=dpt_fused_feats,
++                raw_gs_params=raw_params,
++                input_images=image.flatten(0, 1),  # [B*V, 3, H, W]
++            )
++            # Replace raw params, keep confidence channel unchanged
++            refined = refined_params.view(out.shape[0], out.shape[1], self.raw_gs_dim, out.shape[3], out.shape[4])
++            out = torch.cat([refined, out[:, :, self.raw_gs_dim:]], dim=2)
++        else:
++            out = self.gaussian_param_head(
++                aggregated_tokens_list,
++                pts_all.flatten(0, 1).permute(0, 3, 1, 2),
++                image,
++                patch_start_idx=patch_start_idx,
++                image_size=(h, w),
++            )
+
+         del aggregated_tokens_list, patch_start_idx
+         torch.cuda.empty_cache()
+--
+2.34.1

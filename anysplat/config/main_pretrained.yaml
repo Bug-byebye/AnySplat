@@ -1,0 +1,17 @@
+defaults:
+  - main
+  - experiment: bench_finetune
+  - _self_
+
+# Keep all run-time controls in YAML for pretrained fine-tuning.
+wandb:
+  project: anysplat
+  name: output2_bench_finetune_singlegpu
+  mode: online
+
+dataset:
+  dl3dv:
+    roots: [/data/sunchang/output2_bench]
+    original_image_shape: [1200, 1600]
+
+pretrained_model_path: /home-ldap/sunchang/3dProjects/AnySplatBM/pretrained_model

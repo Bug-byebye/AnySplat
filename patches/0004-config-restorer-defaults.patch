@@ -1,0 +1,36 @@
+From: Gaussian Scene Restoration Project
+Date: 2026-07-05
+Subject: [PATCH 4/4] config/anysplat: Add gaussian_scene_restorer defaults
+
+Adds the default configuration block for the Gaussian Scene Restoration module
+to the encoder YAML config. All fields default to disabled/off so existing
+configs remain unchanged.
+
+---
+ config/model/encoder/anysplat.yaml | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/config/model/encoder/anysplat.yaml b/config/model/encoder/anysplat.yaml
+index 62fb1859..5c8d4d30 100644
+--- a/config/model/encoder/anysplat.yaml
++++ b/config/model/encoder/anysplat.yaml
+@@ -41,6 +41,17 @@ color_attr: 3D # 3D or RGB
+ mlp_type: unified
+ scaffold: true
+
++# Gaussian Scene Restoration module (optional, default disabled)
++# When enabled, refines raw GS params via a lightweight ResidualUNet
++# using intermediate DPT features as priors.
++gaussian_scene_restorer:
++  enabled: false
++  dpt_feat_dim: 128
++  hidden_dim: 64
++  num_blocks: 4
++  use_input_images: true
++  freeze_encoder: true
++
+ # unet3d:
+ #   # lifter_params:
+ #   #   img_in_dim: 32
+--
+2.34.1

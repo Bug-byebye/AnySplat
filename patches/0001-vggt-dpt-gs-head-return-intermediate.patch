@@ -1,0 +1,84 @@
+From: Gaussian Scene Restoration Project
+Date: 2026-07-05
+Subject: [PATCH 1/4] vggt_dpt_gs_head: Add return_intermediate to expose DPT fused
+ features for GaussianSceneRestorer
+
+This patch adds a `return_intermediate` parameter to VGGT_DPT_GS_Head.forward()
+and _forward_impl(). When True, the method returns a tuple (output, fused_features)
+where fused_features are the multi-scale DPT features before the output_conv2
+projection. These features serve as input to the GaussianSceneRestorer module.
+
+---
+ src/model/encoder/heads/vggt_dpt_gs_head.py | 22 ++++++++++++++++------
+ 1 file changed, 16 insertions(+), 6 deletions(-)
+
+diff --git a/src/model/encoder/heads/vggt_dpt_gs_head.py b/src/model/encoder/heads/vggt_dpt_gs_head.py
+index b197adca..ae8764a9 100644
+--- a/src/model/encoder/heads/vggt_dpt_gs_head.py
++++ b/src/model/encoder/heads/vggt_dpt_gs_head.py
+@@ -63,14 +63,14 @@ class VGGT_DPT_GS_Head(DPTHead):
+                 nn.Conv2d(head_features_2, output_dim, kernel_size=1, stride=1, padding=0),
+             )
+
+-    def forward(self, encoder_tokens: List[torch.Tensor], depths, imgs, patch_start_idx: int = 5, image_size=None, conf=None, frames_chunk_size: int = 8):
++    def forward(self, encoder_tokens: List[torch.Tensor], depths, imgs, patch_start_idx: int = 5, image_size=None, conf=None, frames_chunk_size: int = 8, return_intermediate: bool = False):
+         # H, W = input_info['image_size']
+         B, S, _, H, W = imgs.shape
+         image_size = self.image_size if image_size is None else image_size
+-
++
+         # If frames_chunk_size is not specified or greater than S, process all frames at once
+         if frames_chunk_size is None or frames_chunk_size >= S:
+-            return self._forward_impl(encoder_tokens, imgs, patch_start_idx)
++            return self._forward_impl(encoder_tokens, imgs, patch_start_idx, return_intermediate=return_intermediate)
+
+         # Otherwise, process frames in chunks to manage memory usage
+         assert frames_chunk_size > 0
+@@ -83,15 +83,19 @@ class VGGT_DPT_GS_Head(DPTHead):
+
+             # Process batch of frames
+             chunk_output = self._forward_impl(
+-                encoder_tokens, imgs, patch_start_idx, frames_start_idx, frames_end_idx
++                encoder_tokens, imgs, patch_start_idx, frames_start_idx, frames_end_idx, return_intermediate=return_intermediate
+             )
+             all_preds.append(chunk_output)
+-
++
+         # Concatenate results along the sequence dimension
++        if return_intermediate:
++            all_outputs = torch.cat([o[0] for o in all_preds], dim=1)
++            all_feats = torch.cat([o[1] for o in all_preds], dim=0)
++            return all_outputs, all_feats
+         return torch.cat(all_preds, dim=1)
+
+-    def _forward_impl(self, encoder_tokens: List[torch.Tensor], imgs, patch_start_idx: int = 5, frames_start_idx: int = None, frames_end_idx: int = None):
+-
++    def _forward_impl(self, encoder_tokens: List[torch.Tensor], imgs, patch_start_idx: int = 5, frames_start_idx: int = None, frames_end_idx: int = None, return_intermediate: bool = False):
++
+         if frames_start_idx is not None and frames_end_idx is not None:
+             imgs = imgs[:, frames_start_idx:frames_end_idx]
+
+@@ -131,6 +135,11 @@ class VGGT_DPT_GS_Head(DPTHead):
+         out = self.scratch_forward(out)
+         direct_img_feat = self.input_merger(imgs.flatten(0,1))
+         out = F.interpolate(out, size=(H, W), mode='bilinear', align_corners=True)
++
++        # === NEW: capture fused features before output_conv2 for restoration ===
++        fused_features = out + direct_img_feat  # [B*S, 128, H, W]  ← shared multi-scale features
++        # === end ===
++
+         out = out + direct_img_feat
+
+         if self.pos_embed:
+@@ -138,6 +147,9 @@ class VGGT_DPT_GS_Head(DPTHead):
+
+         out = self.scratch.output_conv2(out)
+         out = out.view(B, S, *out.shape[1:])
++
++        if return_intermediate:
++            return out, fused_features
+         return out
+
+
+--
+2.34.1

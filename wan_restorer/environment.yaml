@@ -1,0 +1,36 @@
+name: wan_restorer
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+    - torch==2.9.1+cu128
+    - torchvision==0.24.1+cu128
+    - torchaudio==2.9.1+cu128
+    --index-url https://download.pytorch.org/whl/cu128
+
+    # Wan2.2 dependencies
+    - git+https://github.com/huggingface/diffusers.git
+    - transformers>=4.38.0
+    - accelerate>=1.0.0
+    - sentencepiece
+    - einops
+
+    # Image/video handling
+    - opencv-python
+    - imageio
+    - imageio-ffmpeg
+
+    # Utilities
+    - scipy
+    - huggingface-hub
+    - safetensors
+    - tqdm
+    - Pillow
+
+    # (Optional) For memory-efficient attention
+    # - xformers  # Uncomment if compatible with torch 2.9.1

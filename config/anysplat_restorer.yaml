@@ -1,0 +1,104 @@
+# @package _global__
+#
+# Gaussian Scene Restoration — v1 training experiment.
+# Trains only the lightweight GaussianSceneRestorer module on frozen
+# AnySplat encoder + DPT head. Uses DL3DV dataset with MSE + LPIPS loss.
+#
+# Usage:
+#   python src/main_pretrained.py +experiment=anysplat_restorer
+#
+# Expected training time: ~2-3 hours on single RTX PRO 6000 (10k steps)
+
+defaults:
+  - /dataset@_group_.dl3dv: dl3dv
+  - override /model/encoder: anysplat
+  - override /model/encoder/backbone: croco
+  - override /loss: [mse, lpips]  # simpler loss — depth head is frozen
+
+wandb:
+  name: anysplat_restorer_v1
+  tags: [restorer, dl3dv, v1]
+
+model:
+  encoder:
+    # Enable the restoration module
+    gaussian_scene_restorer:
+      enabled: true
+      hidden_dim: 64
+      num_blocks: 4
+      use_input_images: true
+      freeze_encoder: true
+
+    # Freeze all pretrained components
+    freeze_backbone: true
+    freeze_module: all
+    distill: false   # no distillation — frozen teacher unnecessary
+
+    gs_params_head_type: dpt_gs
+    pose_free: true
+    intrinsics_embed_loc: encoder
+    intrinsics_embed_type: token
+    voxel_size: 0.002
+    pred_pose: true
+    anchor_feat_dim: 128
+    gs_prune: false
+    pred_head_type: depth
+    render_conf: false
+    conf_threshold: 0.1
+    voxelize: true
+    intermediate_layer_idx: [4, 11, 17, 23]
+
+dataset:
+  dl3dv:
+    input_image_shape: [224, 448]
+    view_sampler:
+      num_target_views: 2
+      min_distance_between_context_views: 32
+      max_distance_between_context_views: 256
+      min_gap_multiplier: 3
+      max_gap_multiplier: 5
+    avg_pose: false
+    intr_augment: true
+    normalize_by_pts3d: false
+    rescale_to_1cube: false
+
+optimizer:
+  lr: 1e-3                # higher LR for small restorer module
+  warm_up_steps: 500
+  backbone_lr_multiplier: 0.0  # no backbone updates
+
+data_loader:
+  train:
+    batch_size: 1  # overridden by dynamic sampler
+
+trainer:
+  max_steps: 10000
+  val_check_interval: 500
+  num_nodes: 1
+  accumulate_grad_batches: 1
+  precision: bf16-mixed
+  gradient_clip_val: 0.5
+
+checkpointing:
+  load: null
+  every_n_train_steps: 500
+  save_weights_only: false
+  save_top_k: 3
+
+train:
+  pose_loss_alpha: 1.0
+  pose_loss_delta: 1.0
+  cxt_depth_weight: 0.0
+  weight_pose: 0.0      # no pose distillation
+  weight_depth: 0.0     # no depth distillation
+  weight_normal: 0.0    # no normal distillation
+
+hydra:
+  run:
+    dir: output/exp_${wandb.name}/${now:%Y-%m-%d_%H-%M-%S}
+
+loss:
+  mse:
+    conf: false
+  lpips:
+    conf: false

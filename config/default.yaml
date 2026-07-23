@@ -1,0 +1,71 @@
+# =============================================================================
+# GaussianRepair — 默认实验配置
+# =============================================================================
+# 使用方式：
+#   1. 复制此文件为 experiments/my_exp.yaml
+#   2. 修改相应字段
+#   3. python3 phase1_train.py --config experiments/my_exp.yaml
+# =============================================================================
+
+experiment:
+  name: "default"
+  desc: "默认配置 — VRNeRF apartment scene"
+  output_dir: "/data/sunchang/exp_train/v4_unified"
+  seed: 42
+
+# =============================================================================
+# 数据配置
+# =============================================================================
+data:
+  dataset: "vrnerf"               # 数据集名称 (vrnerf / dl3dv / co3d)
+  root: "/data/sunchang/datasets-raw/vrnerf"
+  scene: "apartment"              # 场景名称
+  cameras: []                     # 指定相机ID列表，空=全部
+                                  # VRNeRF: ["10"]=24mm, ["24"]=85mm, ["10","24"]=两个
+  context_views: 2                # 上下文帧数
+  target_gap: [8, 15]             # 目标帧与上下文的间隔范围
+  resolution: [224, 448]          # [H, W] 处理分辨率
+  batch_size: 1
+
+# =============================================================================
+# 模型配置
+# =============================================================================
+model:
+  # WAN 视频特征提取器
+  video_extractor:
+    feat_dim: 48
+    enable_decoder: False          # 是否加载 VAE decoder（观察用，+2GB VRAM）
+    use_adapters: False            # 是否插入可训练 Adapter
+    adapter_bottleneck: 64
+
+  # 高斯特征编码器
+  gaussian_encoder:
+    hidden_dim: 128
+    encode_method: "mlp"
+    association: "camera_projection"  # camera_projection / cross_attention
+
+  # Reparer
+  repairer:
+    per_gaussian_hidden: 256
+    n_new_queries: 256
+    generator_hidden: 256
+
+# =============================================================================
+# 训练配置
+# =============================================================================
+training:
+  max_steps: 5000
+  learning_rate: 3.0e-4
+  weight_decay: 0.01
+  grad_clip: 1.0
+  log_interval: 10
+  save_interval: 500
+  val_interval: 200
+
+  # Loss 权重
+  loss:
+    weight_params: 1.0e-6          # Δ_params 正则化
+    weight_move: 3.0e-4            # Δ_means 正则化
+    weight_delete: 1.0e-3          # keep_prob 稀疏性
+    weight_gen: 1.0e-5             # Generator 正则化
+    weight_lpips: 0.05

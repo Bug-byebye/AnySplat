@@ -1,0 +1,37 @@
+# 混合训练入口：GT 数据集（dl3dv_gt）+ 其它数据源（如 co3d）。
+# 第二个数据源通过 defaults 拉取 co3d 配置；可按需改为 scannetpp 或复制本文件增删 dataset 段落。
+#
+# 验证集仅使用 dataset 中的第一个数据源（见 get_dataset val 逻辑）。
+# 若需要 val 上的深度/位姿 GT 指标，请将 dl3dv 段放在 dataset 的**首位**。
+
+defaults:
+  - main
+  - experiment: bench_finetune
+  - /dataset@_group_.co3d: co3d
+  - _self_
+
+wandb:
+  project: anysplat
+  name: bench_finetune_mixed_gt_distill
+  mode: online
+
+# encoder.distill 必须为 true（teacher）；由 prepare_mixed_finetune_cfg 强制写入
+model:
+  encoder:
+    distill: true
+
+# 与各 dataset 配置块的键一一对应（dl3dv, co3d, ...）；缺省则各源权重 1.0（再按长度归一）
+mixed_training:
+  sampling_weights:
+    dl3dv: 1.0
+    co3d: 1.0
+
+dataset:
+  dl3dv:
+    name: dl3dv_gt
+    roots: [/data/sunchang/output2_bench]
+    original_image_shape: [1200, 1600]
+  co3d:
+    roots: [datasets/co3dv2]
+
+pretrained_model_path: /home-ldap/sunchang/3dProjects/AnySplatBM/pretrained_model

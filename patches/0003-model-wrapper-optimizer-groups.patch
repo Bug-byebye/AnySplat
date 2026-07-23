@@ -1,0 +1,30 @@
+From: Gaussian Scene Restoration Project
+Date: 2026-07-05
+Subject: [PATCH 3/4] model_wrapper: Add gaussian_scene_restorer to optimizer
+ high-lr group
+
+When the restorer is enabled and the encoder is frozen, the restorer's parameters
+need a higher learning rate than the (zero-update) backbone. This patch adds
+"gaussian_scene_restorer" to the name-based grouping in configure_optimizers()
+so restorer parameters get the main learning rate while backbone parameters
+get backbone_lr_multiplier * lr (typically 0.0).
+
+---
+ src/model/model_wrapper.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/model/model_wrapper.py b/src/model/model_wrapper.py
+index e969e38f..3ebd8402 100644
+--- a/src/model/model_wrapper.py
++++ b/src/model/model_wrapper.py
+@@ -808,7 +808,7 @@ class ModelWrapper(LightningModule):
+             if not param.requires_grad:
+                 continue
+
+-            if "gaussian_param_head" in name or "interm" in name:
++            if "gaussian_param_head" in name or "interm" in name or "gaussian_scene_restorer" in name:
+                 new_params.append(param)
+                 new_param_names.append(name)
+             else:
+--
+2.34.1

@@ -1,0 +1,53 @@
+experiment:
+  dataset: "factory" # vr-nerf | matrixcity | dl3dv-evaluation | factory
+  methods: ["feed_forward", "diffi_enhance"] # supported: feed_forward | ttt | itr | diffi_enhance
+  pretrained_model_path: "pretrained_model"
+  pool_size: 30
+  pool_stride: 1
+  num_context: 24
+  num_test: 6
+  test_sampling_mode: "pose_extreme" # "uniform" | "pose_extreme"
+  # pose_extreme: run AnySplat on all pool views, sort by pose, take half test views from both ends,
+  # and sample the remaining half uniformly at random from the rest.
+  num_train: 24
+  train_distribution: "uniform" # "uniform" | "ordered"
+  output_metrics_dir: "compare-results/metrics-record"
+  output_image_root_dir: "compare-results"
+  seed: 123
+  max_scenes: 30  # null means process all scenes; otherwise process first N scenes
+
+vr-nerf:
+  dataset_root: "/data/sunchang/datasets-raw/vrnerf"
+  scenes: "/data/sunchang/datasets-raw/vrnerf/scenes_used.json"
+  camera_id: "18"
+  fisheye_camera_id: "4"
+  images_subdir: "images-jpeg-1k"
+
+matrixcity:
+  dataset_root: "/data/sunchang/datasets-raw/matrixcity/bdaibdai___MatrixCity"
+  scope: "big"  # big | small | fusion
+  species: "street"  # all | street | aerial
+  images_subdir: "images"
+
+
+dl3dv-evaluation:
+  dataset_root: "/data/sunchang/datasets-raw/dl3dv/DL3DV-Evaluation"
+  index: "images_4" # for resolution, choice: images | images_2 | images_4 | images_8
+  images_subdir: null # Will automatically look in dataset_root/images/
+  max_scenes: null
+
+# Factory dataset settings (tail-only sampling pool)
+# Used when experiment.dataset == "factory"
+factory:
+  dataset_root: "/data/sunchang/factory"
+  rgb_subdir: "rgb"
+  tail_k: 30
+  test_sampling: "stratified"        # stratified | uniform_random
+  input_sampling: "uniform_random"   # uniform_random | ordered
+  # scene_suffixes: ["__conductor","__dielectric_subsurface", "__dielectric_reflective"]               # null=all scenes; string or list, e.g. "__conductor" or ["__conductor","__dielectric_subsurface"]
+  scene_suffixes: null
+# Common dense_sparse configuration (can be overridden by dataset-specific config)
+# dense_sparse:
+#   pool_size: 48
+#   pool_stride: 2
+#   seed: 123
